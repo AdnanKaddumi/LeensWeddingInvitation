@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>قائمة الحضور | طارق &amp; لين</title>
+<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@700&family=Amiri:wght@400;700&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --color-cream: #f8f3e7;
+    --color-ivory: #fdfbf4;
+    --color-beige-deep: #ddd0ac;
+    --color-sage: #8b9873;
+    --color-sage-dark: #57633f;
+    --color-gold: #b28d51;
+    --color-ink: #3d3626;
+    --color-ink-soft: #6b6046;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--color-cream);
+    font-family: 'Amiri', serif;
+    color: var(--color-ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.25rem;
+  }
+  .wrap { width: 100%; max-width: 420px; }
+  h1 {
+    font-family: 'Aref Ruqaa', serif;
+    font-size: clamp(1.5rem, 5vw, 1.9rem);
+    color: var(--color-sage-dark);
+    text-align: center;
+    margin: 0 0 1.6rem;
+  }
+
+  /* Login */
+  #login-card {
+    background: var(--color-ivory);
+    border: 1px solid var(--color-gold);
+    border-radius: 14px;
+    padding: 1.8rem;
+    box-shadow: 0 10px 22px -14px rgba(87, 76, 51, 0.4);
+  }
+  #login-card input {
+    display: block;
+    width: 100%;
+    padding: 0.7rem 1rem;
+    margin-bottom: 0.8rem;
+    font-family: 'Amiri', serif;
+    font-size: 0.95rem;
+    color: var(--color-ink);
+    background: var(--color-cream);
+    border: 1px solid var(--color-beige-deep);
+    border-radius: 8px;
+  }
+  #login-card button {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    font-family: 'Amiri', serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--color-ivory);
+    background: linear-gradient(135deg, var(--color-sage), var(--color-sage-dark));
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  #login-error {
+    color: #a5473a;
+    font-size: 0.85rem;
+    text-align: center;
+    margin: 0.7rem 0 0;
+  }
+
+  /* Guest list */
+  #guest-section { display: none; }
+  .stat-card {
+    background: var(--color-ivory);
+    border: 1px solid var(--color-gold);
+    border-radius: 14px;
+    padding: 1.4rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 10px 22px -14px rgba(87, 76, 51, 0.4);
+  }
+  .stat-count { font-family: 'Aref Ruqaa', serif; font-size: 2.6rem; color: var(--color-sage-dark); line-height: 1; }
+  .stat-label { color: var(--color-ink-soft); font-size: 0.9rem; margin-top: 0.4rem; }
+
+  ul#guest-list { list-style: none; margin: 0; padding: 0; }
+  ul#guest-list li {
+    background: var(--color-ivory);
+    border: 1px solid var(--color-beige-deep);
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+  }
+  .empty-state { text-align: center; color: var(--color-ink-soft); padding: 1rem; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>قائمة الحضور — طارق &amp; لين</h1>
+
+    <!-- Simple login: hardcoded admin / admin123, checked right here. -->
+    <div id="login-card">
+      <input type="text" id="login-user" placeholder="اسم المستخدم" autocomplete="username" />
+      <input type="password" id="login-pass" placeholder="كلمة المرور" autocomplete="current-password" />
+      <button type="button" id="login-btn">دخول</button>
+      <p id="login-error" hidden>اسم المستخدم أو كلمة المرور غير صحيحة</p>
+    </div>
+
+    <div id="guest-section">
+      <div class="stat-card">
+        <div class="stat-count" id="count">—</div>
+        <div class="stat-label">عدد المؤكدين للحضور</div>
+      </div>
+      <ul id="guest-list"></ul>
+      <p id="empty-state" class="empty-state" hidden>لا يوجد تأكيدات حضور بعد.</p>
+    </div>
+  </div>
+
+  <!-- Reads from the same Firestore project the invitation page writes
+       to — see firebase-config.js for the one-time setup + credentials. -->
+  <script type="module" src="firebase-config.js"></script>
+  <script>
+    const loginCard = document.getElementById("login-card");
+    const guestSection = document.getElementById("guest-section");
+    const loginError = document.getElementById("login-error");
+
+    function loadGuests() {
+      const list = document.getElementById("guest-list");
+      const empty = document.getElementById("empty-state");
+
+      if (typeof window.fetchRSVPs !== "function") {
+        // firebase-config.js hasn't finished loading yet — try again shortly
+        // rather than showing an empty list.
+        setTimeout(loadGuests, 300);
+        return;
+      }
+
+      window.fetchRSVPs().then((names) => {
+        document.getElementById("count").textContent = names.length;
+        list.innerHTML = "";
+        if (!names.length) {
+          empty.hidden = false;
+        } else {
+          empty.hidden = true;
+          names.forEach((name) => {
+            const li = document.createElement("li");
+            li.textContent = name;
+            list.appendChild(li);
+          });
+        }
+      });
+    }
+
+    function login() {
+      const user = document.getElementById("login-user").value;
+      const pass = document.getElementById("login-pass").value;
+      if (user === "admin" && pass === "admin123") {
+        sessionStorage.setItem("rsvpAdminLoggedIn", "1");
+        loginCard.style.display = "none";
+        guestSection.style.display = "block";
+        loadGuests();
+      } else {
+        loginError.hidden = false;
+      }
+    }
+
+    document.getElementById("login-btn").addEventListener("click", login);
+    document.getElementById("login-pass").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") login();
+    });
+
+    // Stay logged in for the rest of this browser tab session
+    if (sessionStorage.getItem("rsvpAdminLoggedIn") === "1") {
+      loginCard.style.display = "none";
+      guestSection.style.display = "block";
+      loadGuests();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,3087 @@
+/* ==========================================================================
+   TAREQ & LEEN — WEDDING INVITATION
+   Theme: Botanical Sage (ivory/beige base, sage green, fine antique gold)
+   ==========================================================================
+   TABLE OF CONTENTS
+   1. Design tokens (colors, fonts, textures)
+   2. Reset & base
+   3. Full-screen envelope intro
+   4. Envelope flap-open animation
+   5. Main invitation shell + background texture
+   6. Qur'anic verse + formal family invitation page
+   7. Hero section (monogram, wreath, names, date)
+   8. Scroll reveal animation
+   9. Responsive tweaks
+   10. Reduced motion support
+
+   All ten sections from the spec are built (venue illustration, about the
+   couple, scratch-to-reveal date, countdown, location, adults-only note,
+   closing all live after the hero section below).
+   ========================================================================== */
+
+/* ---------- 1. DESIGN TOKENS ---------- */
+:root {
+  /* --- Botanical sage palette: warm ivory/beige base, rich olive green,
+     fine antique gold, with dusty-rose/white as floral accents. Every
+     section reads --text-* and --bg-*, which all resolve to these, so
+     this one block is what retunes the whole site at once. --- */
+  --color-cream: #f6efe4;
+  --color-beige: #ede3cd;
+  --color-beige-deep: #ddd0ac;
+  --color-ivory: #fdfbf4;
+/* Physical Lighting Engine (Light Theme) */
+  --surface-light: rgba(255, 255, 255, 0.7);
+  --surface-shadow: rgba(20, 15, 8, 0.05);
+  --bg-vignette: rgba(30, 25, 15, 0.12);
+  --grain-blend: multiply;
+  --grain-opacity: 0.25;
+
+  --color-sage: #a9af83;
+  --color-sage-light: #d6d9bd;
+  /* Darkened toward black, not just a straight read of the swatch above:
+     the spec's literal muted-olive/sage swatches are tuned for leaf
+     fills, not body-sized accent text — used at that lightness directly
+     as --text-accent it lost contrast against cream. */
+  --color-sage-dark: #5a6040;
+  /* Spec's literal muted-olive swatch — greenery/vine fills and stems
+     only, never text. */
+  --color-olive-leaf: #8a9463;
+
+  --color-dusty-rose: #d9a79c;
+  --color-cream-warm: #f6eedd;
+
+  --color-gold-hairline: #b8925a;
+  /* Muted bronze variant of the gold above — for large text/fill surfaces
+     (e.g. the Basmala) rather than thin hairline strokes/rings, where the
+     plain gold-hairline hex reads noticeably brighter/warmer at full
+     opacity and size than it does as a 1px line. Same family, darkened
+     toward the ink tone so it stays "antique gold," not amber. */
+  --color-gold-muted: color-mix(in srgb, var(--color-gold-hairline) 70%, var(--color-ink-ar) 30%);
+  /* Deeper bronze shadow for the wax-seal medallion specifically */
+  --color-bronze-deep: #8c6a3e;
+
+  --color-ink-ar: #5a3a28;
+  --color-ink-ar-soft: #7a5a42;
+
+  /* --- Rich olive green — the closed envelope's single solid tone, and
+     also the dark theme's page background, so the two share one
+     deliberate identity instead of being two unrelated dark palettes,
+     matching the beige/olive/gold palette the rest of the invitation
+     already reads. --color-olive is the one base color the envelope's
+     four panels all use; -light/-deep exist only for shadow/highlight
+     depth on top of that single tone, not to give each panel a visibly
+     different hue. */
+  /* FIX #1/#2: retuned to the requested target ramp — warm olive-gold
+     highlight / mid olive / deep loden shadow. Same three-token
+     structure as before, still one olive family, just the specific
+     values widened/adjusted so the envelope's three panels (which all
+     read this same ramp) stop looking muddier/narrower-range in some
+     spots than others. */
+  --color-olive-light: #7C8A52;
+  --color-olive: #5C6B3B;
+  --color-olive-deep: #3E4A28;
+
+  /* Flap-only lighting ramp (visual polish pass): the folded top flap
+     catches light near its upper edge, warmed slightly (mixed toward the
+     site's cream) rather than just lightening --color-olive in place.
+     BUG FIX: this token pair used to be two colors — a warm light-top AND
+     a cool dark-bottom, for a "catches light at top, falls into shadow at
+     the fold" gradient. --color-olive-flap-bottom (and the corresponding
+     dip in --flap-light-gradient below) is gone now: since this gradient
+     is shared full-width across .envelope-wedges (not just the flap's own
+     narrow triangle — see that token's own comment), any darkening dip
+     here shows up as a horizontal band across the whole envelope on a
+     wide enough screen, not a subtle "near the fold" shading. Confirmed
+     visible at 1440px width even after softening it twice; removing it
+     outright was the only fix that actually held. */
+  --color-olive-flap-top: color-mix(in srgb, var(--color-olive) 88%, var(--color-cream-warm) 12%);
+  /* Shared by .flap-face--front AND .envelope-wedges (the fixed side
+     panels flanking the flap) — both are full-screen boxes clipped to
+     complementary shapes that meet exactly along the flap's diagonal
+     edges, so painting the identical gradient on both, anchored to the
+     same var(--apex-y) the clip-path itself uses, means their colors
+     match at every point along that shared boundary: no seam. Stops
+     entirely inside 0%-apex-y (the only range either shape ever shows —
+     past apex-y is clipped away on both) and eases back to flat
+     --color-olive exactly at apex-y, so the bottom edge also matches
+     .envelope-body's own flat --color-olive starting right there — the
+     project's history (see the FIX comment on .envelope-body below)
+     found that any gradient/shadow left visible right at that seam reads
+     as a stray stripe, so this stays flat at that one boundary and saves
+     the light/dark falloff for the interior.
+     BUG FIX: because this is a pure 180deg (vertical-only) gradient, it
+     is completely X-independent — .envelope-wedges and .flap-face--front
+     MUST keep sharing this exact same formula (that's what keeps their
+     diagonal edge seamless), which means whatever this gradient does at
+     a given height shows up at that SAME height across the wedges'
+     entire, full screen WIDTH too, not just within the flap's narrow
+     triangle. The previous version's darkening dip (94% -> 92%*apex-y
+     stop, mixed 16% toward navy) was tuned by eye against the flap's own
+     narrow triangle, where it read as a subtle localized "near the fold"
+     shading — stretched across the wide wedges area on a desktop-width
+     screen, that same dip became a visible horizontal band cutting
+     across the whole envelope, most obvious right through the seal.
+     First attempt just softened the dip (16% mix -> 6%, stop 92% -> 97%)
+     rather than removing it — still visible at 1440px width (confirmed
+     with a screenshot + a pixel sample straight down the wedge: still a
+     ~20/255-unit dip against neighboring rows, plainly visible against a
+     flat green field with no other large-scale variation to camouflage
+     it in). Removed the dip outright instead: a plain 2-stop, monotonic
+     light-top -> flat-olive-at-apex. This trades away the "slightly
+     darker/cooler right at the fold" detail entirely, but that detail is
+     structurally incompatible with this element being shared full-width
+     across .envelope-wedges — ANY non-monotonic (or even a too-steep
+     monotonic) profile here is a latent band waiting for a wide enough
+     screen to expose it, so "smaller dip" was never going to fully solve
+     it, only shrink the width at which it starts showing again. */
+  --flap-light-gradient: linear-gradient(
+    180deg,
+    var(--color-olive-flap-top) 0%,
+    var(--color-olive) var(--apex-y)
+  );
+
+  /* --- Theme tokens (light = default) ---
+     Every rule that needs to differ between light/dark reads ONE of
+     these, never a raw --color-* value directly — that's what makes
+     [data-theme="dark"] below a short override instead of a per-element
+     hunt. Deliberately narrow in scope: backgrounds and text only. The
+     venue illustration, photos, and the medallion seal stay OFF this
+     system entirely and keep their fixed values in both themes.
+     --text-accent is the one addition beyond the original five: it
+     covers headings/emphasis text that was sage-dark (dividers, section
+     titles, the countdown/scratch digits, the closing signature) —
+     sage-dark reads fine on the light beige these were designed against,
+     but is nearly invisible on the dark theme's olive (both are dark,
+     muted, same-family greens). The hero names and T&L monogram
+     (.script-name/.monogram-script) went through the same problem and
+     were first handled with a same-color glow instead of a token, to
+     honor an early instruction to leave their color untouched — a
+     follow-up round asked for them to actually recolor in dark mode
+     like everything else instead, so they now have their own
+     [data-theme="dark"] color override near their base rules rather
+     than reading --text-accent (their sage-dark stays intentionally
+     different from the accent color in light mode). */
+  --bg-page: var(--color-cream);
+  --bg-section: var(--color-ivory);
+  --text-primary: var(--color-ink-ar);
+  --text-secondary: var(--color-ink-ar-soft);
+  --text-accent: var(--color-sage-dark);
+  --border-color: var(--color-gold-muted);
+  /* Olive frame border (.page-frame) — a separate token from
+     --border-color above (that one's gold, used for small UI elements;
+     this is specifically olive, per request, for the page-framing
+     border). Muted/dark olive-sage here so it reads clearly against the
+     light beige page; swapped to a lighter sage in dark theme below so
+     it stays visible against the dark olive-deep page there too. */
+  --frame-color: var(--color-sage-dark);
+
+  /* Typography — Arabic (the whole site) */
+  --font-ar-display: 'Aref Ruqaa', serif;
+  --font-ar-quran: 'Amiri Quran', serif;
+  --font-ar-nastaliq: 'Noto Nastaliq Urdu', serif; /* NEW: Sweeping formal script */
+  /* Classical Naskh-revival body face — only Regular (400) and Bold (700)
+     exist, so any font-weight requested between those snaps to whichever
+     is closer (normal CSS font matching, not a bug). */
+  --font-ar-body: 'Amiri', serif;
+
+  /* Typography — Latin, kept only for the "T | L" monogram logotype, a
+     deliberate design detail set apart from the Arabic content */
+  --font-display: 'Playfair Display', serif;
+  /* Flowing signature script — the hero's T & L monogram, and reusable
+     anywhere else a hand-lettered flourish is wanted */
+  --font-script: 'Alex Brush', cursive;
+
+  /* Warm-tinted paper grain, generated with SVG feTurbulence — reused as a
+     background-image on any element via the .paper-grain utility class */
+  --texture-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.42 0 0 0 0 0.32 0 0 0 0 0.18 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* Fiber-noise fabric texture (design-system pass, superseding the
+     9x9px diagonal-crosshatch --texture-linen from the previous pass —
+     that was still a repeating GEOMETRIC tile at heart; the brief is
+     explicit this round that it should be pure irregular fiber noise
+     instead, nothing patterned). --pattern is the noise itself
+     (feTurbulence, tiled at 70px). --mottle is four large, irregularly
+     placed soft radial gradients simulating uneven dye absorption —
+     deliberately NOT symmetric/centered, since real fabric dye never
+     lands perfectly even. Both are meant to be layered together with a
+     surface's own lighting/base gradient in ONE background shorthand
+     (see .envelope-body/.flap-face--front/.envelope-wedges/.invitation
+     below), never as a separate overridable rule. */
+  --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='70' height='70'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.97 0 0 0 0 0.93 0 0 0 0 0.78 0 0 0 0.42 0'/%3E%3C/filter%3E%3Crect width='70' height='70' filter='url(%23n)'/%3E%3C/svg%3E");
+  --mottle:
+    radial-gradient(ellipse 320px 240px at 18% 20%, rgba(255, 255, 255, 0.05), transparent 62%),
+    radial-gradient(ellipse 280px 220px at 80% 30%, rgba(0, 0, 0, 0.06), transparent 60%),
+    radial-gradient(ellipse 300px 230px at 65% 78%, rgba(255, 255, 255, 0.04), transparent 60%),
+    radial-gradient(ellipse 260px 200px at 15% 82%, rgba(0, 0, 0, 0.05), transparent 58%);
+
+  /* Envelope geometry: the % point down the screen where the flap's
+     lower boundary sits (and where the X-crease lines / seal converge).
+     Bumped 62% -> 68% (this pass) so the flap's lower edge reaches down
+     to roughly where the "دعوة زفاف" caption sits — a pure geometry
+     value, doesn't touch how the flap animates, just how tall it is
+     while closed. Keep in sync with the hardcoded "68" points in
+     index.html's seam SVG. */
+  --apex-y: 68%;
+
+  /* Seal size — shared by .envelope-seal, the flanking flourishes and
+     wreath blooms (via --seal-r, half of this), and .envelope-caption's
+     own top offset, so all four stay in sync off one value instead of
+     four separately-maintained copies of the same clamp(). SHRUNK (this
+     pass) from clamp(200px, 30vmin, 300px), at request — same 200:300:30
+     ratio, scaled down to 80%. */
+  --seal-size: clamp(160px, 24vmin, 240px);
+
+  /* Top flap silhouette: a true straight-edge triangle (this pass) — was
+     a bezier-sampled soft arch that bulged outward before curving in to
+     the tip, which read as curved/concave edges rather than a genuine
+     triangle. Three points only: the two top corners and the tip at
+     (50%, var(--apex-y)), all straight lines between them. */
+  --flap-clip: polygon(
+    0% 0%, 100% 0%, 50% var(--apex-y)
+  );
+
+  /* Content measure on large screens — wide enough to feel substantial,
+     capped well short of the viewport so text never stretches thin and
+     wide on a big monitor */
+  --max-width: 720px;
+  --transition-slow: 1100ms cubic-bezier(0.65, 0, 0.35, 1);
+  --transition-med: 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* Editorial reveal easing — a touch snappier out of the gate than the
+     slower --transition-slow above, meant for text/motif entrances rather
+     than full-screen transitions */
+  --transition-reveal: 800ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* --- Scroll parallax ---
+     --parallax-y (px) is written by initScrollAtmosphere() in
+     LeensWeddingInvitation.js as the guest scrolls, and read below by
+     .venue-illustration for a small drift. Default here is the
+     resting/no-JS state. (A companion --scroll-tint once blended
+     .stone-bg toward a dusk palette on scroll — removed because it read
+     as the page losing its ivory/sage Italian-villa identity rather than
+     a deliberate lighting change.) */
+  --parallax-y: 0px;
+}
+
+/* Dark theme: deep olive page, warm ivory/cream text — set by
+   initThemeToggle()/applyTheme() in LeensWeddingInvitation.js toggling
+   this attribute on <html>, and read before first paint by the tiny
+   inline script at the top of <head> (avoids a flash of the light theme
+   for returning dark-mode visitors). Reuses the same --color-olive*
+   tokens the closed envelope uses (see their definition above), so the
+   two dark surfaces on this site share one identity rather than being
+   arbitrarily different. Only the five theme tokens are redefined here —
+   everything else (gold accents, the venue illustration, photos, the
+   seal, script-name colors) is untouched by design. */
+[data-theme="dark"] {
+  /* Physical Lighting Engine (Dark Theme) */
+  --surface-light: rgba(255, 255, 255, 0.04); /* Very faint moon/ambient light */
+  --surface-shadow: rgba(0, 0, 0, 0.4);
+  --bg-vignette: rgba(0, 0, 0, 0.6);
+  --grain-blend: overlay; /* Overlay lets the texture create highlights on dark dye */
+  --grain-opacity: 0.15;
+
+  --bg-page: var(--color-olive-deep);
+  --bg-section: var(--color-olive);
+  --text-primary: var(--color-ivory);
+  --text-secondary: color-mix(in srgb, var(--color-ivory) 70%, var(--color-olive-light) 30%);
+  --text-accent: var(--color-sage);
+  --border-color: var(--color-gold-hairline);
+  /* Lighter sage here (not --color-sage-dark) — the light theme's dark
+     olive-sage border would nearly disappear against this theme's own
+     dark olive-deep page background. */
+  --frame-color: var(--color-sage);
+}
+
+/* ---------- 2. RESET & BASE ---------- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-ar-body);
+  color: var(--text-primary);
+  background: var(--bg-page);
+  overflow-x: hidden;
+  min-height: 100vh;
+  min-height: 100svh;
+  transition: background-color 400ms ease, color 400ms ease;
+}
+
+img, svg { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+/* appearance: none strips the browser's native widget rendering — without
+   it, a <button> keeps its native OS sizing/chrome behavior underneath
+   even with every other property (padding, border, display) overridden,
+   which is what caused #theme-toggle's box-shadow to visibly bleed out
+   from behind its own pill (the button's real hit box/shadow origin was
+   taller than the pill drawn inside it, entirely due to this). */
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; appearance: none; -webkit-appearance: none; }
+
+.screen { width: 100%; }
+
+
+/* Shared line-art stroke style for every motif drawn from the symbol library */
+svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
+  vector-effect: non-scaling-stroke;
+}
+#motif-signature-swash path,
+#motif-divider line, #motif-divider rect,
+#icon-calendar rect, #icon-calendar line,
+#icon-clock circle, #icon-clock line,
+#icon-venue path, #icon-venue circle,
+#icon-sun circle, #icon-sun line,
+#icon-close line,
+#icon-chevron-left polyline, #icon-chevron-right polyline,
+#icon-music-on line, #icon-music-on path,
+#icon-music-off line, #icon-music-off path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#motif-divider circle,
+#icon-calendar circle,
+#icon-moon path,
+#icon-music-on circle,
+#icon-music-off circle {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* Eucalyptus/olive botanical motifs — envelope branches, corner sprigs,
+   the adults-only accent branch, and every gold-hairline divider's
+   flourish sitewide. */
+#motif-eucalyptus-sprig .branch-stem,
+#motif-olive-branch .branch-stem,
+#motif-divider-olive .divider-olive-stem {
+  fill: none;
+  stroke: var(--color-sage-dark);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#motif-eucalyptus-sprig .branch-leaf,
+#motif-olive-branch .branch-leaf,
+#motif-divider-olive .divider-olive-leaf {
+  fill: var(--color-sage);
+}
+#motif-eucalyptus-sprig .branch-leaf--sm {
+  fill: var(--color-sage-light);
+}
+#motif-olive-branch .branch-pod {
+  fill: var(--color-gold-hairline);
+  opacity: 0.7;
+}
+/* Small white bloom — soft ivory petals (not stark white, so they sit
+   warm against the cream/sage palette) with a fine gold outline for
+   definition, since ivory-on-cream has almost no contrast unstroked, plus
+   a muted gold center. Reused sitewide as the "flower" layer of the
+   branch/bloom/candle botanical language established below. */
+#motif-bloom .bloom-petals ellipse {
+  fill: var(--color-ivory);
+  stroke: var(--color-gold-muted);
+  stroke-width: 0.6;
+}
+#motif-bloom .bloom-center {
+  fill: var(--color-gold-hairline);
+  opacity: 0.8;
+}
+
+/* Reference-port pass: the vine centerpiece's colors are now plain inline
+   fill/stroke attributes on the SVG elements themselves (see the HTML,
+   #vine-leafpair/#vine-blossom/#vine-bud etc.) — copied that way straight
+   from envelope-concept-demo.html rather than translated into a parallel
+   set of CSS class rules, so there's nothing to style here anymore. The
+   liftShadow filter (also inline, url(#vine-lift-shadow)) replaces what
+   used to be a separate .vine-blossom-instance CSS rule. */
+/* FIX #5: #motif-dove .dove-body/.dove-wing rules removed along with the
+   dove HTML/symbol above — no longer referenced anywhere. */
+
+/* Venue colonnade scene: stone-line arches/columns, sage foliage, gold
+   fountain accents */
+#motif-venue-scene .venue-line {
+  fill: none;
+  stroke: var(--color-sage-dark);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.75;
+}
+#motif-venue-scene .venue-leaf {
+  fill: var(--color-sage);
+}
+#motif-venue-scene .venue-leaf--light {
+  fill: var(--color-sage-light);
+}
+#motif-venue-scene .venue-gold {
+  fill: none;
+  stroke: var(--color-gold-hairline);
+  stroke-width: 1.4;
+  opacity: 0.85;
+}
+#motif-venue-scene .venue-water {
+  stroke: var(--color-gold-hairline);
+  stroke-width: 1;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+#motif-venue-scene .venue-water-drop {
+  fill: var(--color-gold-hairline);
+  opacity: 0.6;
+}
+#motif-divider-olive .divider-hairline {
+  stroke: var(--color-gold-hairline);
+  stroke-width: 1;
+}
+
+/* Candle line art */
+#motif-candle .candle-body {
+  fill: var(--color-ivory);
+  stroke: var(--color-gold-hairline);
+  stroke-width: 1;
+}
+#motif-candle .candle-detail {
+  stroke: var(--color-gold-hairline);
+  stroke-width: 0.6;
+  opacity: 0.5;
+}
+#motif-candle .candle-wick {
+  stroke: #4a4130;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+#motif-candle .candle-flame {
+  fill: #e2a955;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: flame-flicker 2.4s ease-in-out infinite;
+  animation-delay: var(--flicker-delay, 0s);
+  will-change: transform, opacity;
+}
+
+@keyframes flame-flicker {
+  0%, 100% { transform: scale(1, 1) rotate(0deg); opacity: 1; }
+  25%      { transform: scale(0.94, 1.07) rotate(-2deg); opacity: 0.93; }
+  55%      { transform: scale(1.05, 0.95) rotate(1.5deg); opacity: 1; }
+  80%      { transform: scale(0.97, 1.04) rotate(-1deg); opacity: 0.96; }
+}
+
+/* Subtle sway on a few select leaves (wrapped in <g class="leaf-sway"> inside
+   the branch symbols) — restrained on purpose, not a full-branch motion */
+.leaf-sway {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: leaf-sway 5.5s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes leaf-sway {
+  0%, 100% { transform: rotate(0deg); }
+  50%      { transform: rotate(3deg); }
+}
+
+/* ==========================================================================
+   3. FULL-SCREEN ENVELOPE INTRO
+   ========================================================================== */
+#envelope-screen {
+  position: fixed;
+  inset: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  z-index: 100;
+
+  /* REMOVED (this pass): #envelope-screen no longer paints its own
+     background — that solid fill used to cover the side wedges beside
+     the flap's slanted edges, but it ALSO covered the triangle itself,
+     blocking the real invitation content from ever showing through it
+     once the flap opens. The wedges now get their olive fill from
+     .envelope-wedges instead (a child shaped to cover ONLY those two
+     side triangles, leaving the center triangle untouched/transparent
+     so #invitation can show through it once unhidden). */
+  /* Establishes the 3D viewing context for the flap+seal's rotateX fold
+     below — perspective-origin: center top keeps the vanishing point
+     right at the flap's hinge, so the fold reads as a real physical
+     rotation around that top edge rather than a generic 3D wobble. */
+  perspective: 1500px;
+  perspective-origin: center top;
+
+  /* FIX #3 (this pass): outer rectangle corners go back to sharp/square
+     — the rounding lives on the flap's own inner tip now instead (see
+     --flap-clip's apex in the design tokens above this file). */
+  border: 2px solid var(--color-olive-deep);
+  box-sizing: border-box;
+
+  /* FIX #1: the whole screen is the tap-to-open trigger now (no more
+     medallion button), so it should visibly read as clickable. */
+  cursor: pointer;
+
+  /* Permanent ambient vignette (design-system pass, retuning the earlier
+     visual-polish-pass version to the brief's exact values): #envelope-
+     screen is a full-viewport fixed layer with no page visible around/
+     behind it to cast a drop-shadow onto, so a literal shadow "beneath"
+     the object isn't renderable here — this inset vignette is the
+     closest equivalent, darkening just inside the envelope's own outer
+     edge for photographic depth, the same way a real paper object's
+     corners/edges read slightly deeper in shadow than its center when
+     lit and resting on a surface. Static, not part of the .hidden fade
+     (see its own opacity/filter/visibility transition above, untouched)
+     — this box-shadow is a separate property nothing else here
+     transitions. First two layers are the original outer-lift pair, kept
+     for the same reasoning as before; the last two are the brief's new,
+     stronger permanent vignette layered on top. */
+  box-shadow:
+    inset 0 0 min(10vw, 70px) rgba(20, 15, 8, 0.16),
+    inset 0 0 min(3vw, 24px) rgba(20, 15, 8, 0.12),
+    inset 0 0 55px rgba(0, 0, 0, 0.28),
+    inset 0 0 14px rgba(0, 0, 0, 0.2);
+}
+
+/* Step 4 (prototype's naming): the envelope dims and softens out of
+   focus as it fades, rather than just vanishing — the closest match, in
+   a full-bleed layout with no separate "page behind the card" to dim,
+   to the prototype's own Step 4 (a dedicated background layer blurring
+   behind a smaller centered card). Duration matches the flap's own 0.8s
+   (not a shorter guess) deliberately: #envelope-screen fading to
+   invisible/hidden any faster would visually cut the flap's rotation off
+   mid-fold, since the flap lives inside this element and stops being
+   painted the instant it is. */
+#envelope-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+
+  filter:
+    brightness(0.92)
+    blur(4px);
+
+  transition:
+    opacity 1.4s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 1.4s ease,
+    filter 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+  pointer-events: none;
+}
+
+/* Base paper: warm beige/cream linen + fine fabric grain — the seam it
+   sits behind is what supplies the depth (see .envelope-paper's radial
+   shadow below), not a color shift in the paper itself. Normally
+   hidden behind the four opaque flap panels except at the seams — it
+   becomes the whole visible surface for Step 3's brief pause once the
+   top flap has folded away and before the invitation fades in (see
+   initEnvelope() in the JS). */
+.envelope-paper {
+  position: absolute;
+  inset: 0;
+
+  /* FIX #4 (this pass): background removed entirely (was an olive-toned
+     gradient, itself a fix for an earlier cream/beige flash). Now fully
+     transparent — #invitation (unhidden + already fading/rising in the
+     same tick the flap starts opening, see initEnvelope() in the JS) is
+     what actually shows through as the flap lifts, so the very first
+     thing revealed is the real verse section on its own real background,
+     not a placeholder layer standing in for it. */
+  background: transparent;
+
+  transition:
+    filter 900ms ease,
+    opacity 900ms ease;
+
+}
+#envelope-screen.open .envelope-paper {
+  filter: brightness(0.96);
+}
+
+/* Corner flourishes (design-system pass): sit just inside #envelope-screen's
+   own 2px border, gold. Now a child of .flap-top (see the HTML comment by
+   these elements for why — a rendering bug, not a design choice), so
+   position: absolute here is relative to that same inset: 0 box; opacity
+   low enough to read as a quiet frame detail rather than compete with the
+   flap/seal; backface-visibility: hidden matches every other .flap-top
+   child so it disappears at the same instant the front face does. */
+/* Reference-port pass: 4 corners now (was 2), sized/positioned to match
+   envelope-concept-demo.html's .corner rule (30px box, 5px inset,
+   opacity 0.8) — tr/bl/br are the SAME tl markup, CSS-mirrored
+   (scaleX/scaleY/scale(-1,-1), exactly the reference's own technique)
+   rather than 4 separately hand-authored corners. Colors are inline on
+   the SVG paths themselves now (see the HTML), matching the reference's
+   own approach, so no .corner-flourish-stem rule is needed here anymore. */
+.envelope-corner-flourish {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  opacity: 0.8;
+  pointer-events: none;
+  backface-visibility: hidden;
+}
+.envelope-corner-flourish--tl {
+  top: 5px;
+  left: 5px;
+}
+.envelope-corner-flourish--tr {
+  top: 5px;
+  right: 5px;
+  transform: scaleX(-1);
+}
+.envelope-corner-flourish--bl {
+  bottom: 5px;
+  left: 5px;
+  transform: scaleY(-1);
+}
+.envelope-corner-flourish--br {
+  bottom: 5px;
+  right: 5px;
+  transform: scale(-1, -1);
+}
+/* FIX #2: opacity 0.4 -> 0.05, matching the same "faint, ~4-6%" texture
+   target as .flap-shade::after — was reading as noticeably stronger
+   grain than the panels around it. */
+.envelope-paper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--texture-grain);
+  mix-blend-mode: multiply;
+  opacity: 0.05;
+}
+
+/* REMOVED (this pass): .envelope-watermark (the curly signature-swash
+   watermark inside .envelope-paper). Now that the flap's triangular
+   opening shows real invitation content behind it while rotating, this
+   rendered as a stray curly line sitting behind/across that content —
+   removed per request, HTML element deleted too. */
+.envelope-paper::before {
+  content: "";
+  position: absolute;
+
+  left: 50%;
+  top: var(--apex-y);
+
+  width: min(42vw, 560px);
+  height: min(22vw, 260px);
+
+  transform: translate(-50%, -50%);
+
+  background:
+    radial-gradient(
+      ellipse,
+      rgba(92, 69, 35, 0.15) 0%,
+      rgba(92, 69, 35, 0.06) 35%,
+      transparent 72%
+    );
+
+  filter: blur(18px);
+
+  pointer-events: none;
+}
+
+/* Static shading for the three non-interactive flaps (left, right, bottom),
+   all sharing the apex point with the interactive top flap. One solid
+   olive tone across all three (and the top flap, see .flap-face--front)
+   — a deliberate change from an earlier version that gave each panel a
+   visibly different hue; here the fold lines read from the gold seam
+   strokes (.envelope-seams) and a subtle per-panel gradient toward
+   --color-olive-deep at the seam edge, not from color contrast between
+   panels. Each carries the same fine linen grain as the paper base
+   (.flap-shade::after) so all four read as one continuous material. */
+/* SIMPLIFIED (this pass): .flap-shade + its three --left/--right/--bottom
+   clip-path triangles are gone — replaced by this one plain rectangle
+   covering the same overall area, one consistent color/shadow, no panel
+   seams. Sits below --apex-y, full width, flat bottom edge. */
+/* FIX (this pass): was a radial highlight positioned "at 50% 0%" (the
+   body's own top edge, right where the flap tip touches down) plus an
+   inset box-shadow darkening that same top edge — both concentrated at
+   the same horizontal line across the full width, which is exactly the
+   "seam/gradient stripe" reported as still visible after the SVG seam
+   line was removed. Flat solid color now — genuinely one uniform area,
+   no gradient, no shadow. */
+.envelope-body {
+  position: absolute;
+  left: 0;
+  top: var(--apex-y);
+  width: 100%;
+  height: calc(100% - var(--apex-y));
+
+  /* BUG FIX: this element previously carried its own 135deg sheen
+     (0.08/0.18) AND a box-shadow inset from its own top edge (15px,
+     rgba(10,8,4,0.45)) — that box-shadow in particular is the exact
+     mistake this project's OWN history already flagged and fixed once
+     (see the design-tokens/apex-y comments above): an inset shadow
+     anchored at this element's own top edge sits EXACTLY on the seam
+     with .envelope-wedges, and paints as a hard horizontal line the full
+     width of the screen, right through the seal — visible in the
+     screenshot this fix was made from. Removed outright, along with the
+     mismatched sheen (.envelope-wedges was using a DIFFERENT sheen
+     recipe than this element, 128deg 0.10/0.05 vs this one's 135deg
+     0.08/0.18 — different angle AND stops — which independently would
+     also show as a seam at their shared boundary even without the
+     box-shadow).
+     Sheen now lives on .envelope-sheen instead (a single element spanning
+     the whole #envelope-screen, sitting right after .envelope-wedges in
+     the HTML) rather than being recomputed separately per element — see
+     that rule's own comment for why a shared single layer is the only
+     way to guarantee zero mismatch between differently-sized boxes.
+     BUG FIX (round 2): --pattern/--mottle removed from here too, now —
+     see .envelope-sheen's own comment for why per-element texture at
+     this specific boundary is never actually safe, regardless of how
+     closely the values match between the two elements. Flat base color
+     only here now; the fabric texture visible on top of it is entirely
+     .envelope-sheen's doing. */
+  background: var(--color-olive);
+}
+
+/* Olive branch + candle clusters, bottom-left and bottom-right — static
+   (they don't move with the flap), sitting above .flap-shade--bottom and
+   below the seams/flap/medallion (z-index 2, between the shade's implicit
+   0 and .flap-top's 3). Each corner is one positioning context so the
+   branch/candles/blooms inside can be placed with simple absolute offsets
+   relative to it instead of the whole screen. */
+.envelope-botanicals {
+  position: absolute;
+  bottom: 4%;
+  z-index: 2;
+  width: min(46vw, 220px);
+  height: min(30vw, 140px);
+  pointer-events: none;
+}
+.envelope-botanicals--left {
+  left: -2%;
+}
+.envelope-botanicals--right {
+  right: -2%;
+  /* Mirrors the whole cluster so the branch reaches inward from the
+     right corner too, rather than repeating the same left-to-right
+     sweep on both sides. */
+  transform: scaleX(-1);
+}
+
+.botanical-branch {
+  position: absolute;
+  left: 0;
+  bottom: 6%;
+  width: 100%;
+  height: auto;
+  opacity: 0.92;
+}
+
+.botanical-candle {
+  position: absolute;
+  bottom: 0;
+  width: 9%;
+  height: auto;
+}
+.botanical-candle--tall { left: 58%; height: 34%; }
+.botanical-candle--short { left: 70%; height: 24%; }
+/* ENRICHED (this pass): third candle, same .botanical-candle base +
+   flicker/glow technique as the two above, just its own position/height. */
+.botanical-candle--mid { left: 82%; height: 29%; }
+
+/* ENRICHED: an extra shorter sprig (reuses #motif-eucalyptus-sprig,
+   already used elsewhere on the site) for a varied length/direction
+   alongside the main olive branch — angled up and away from it rather
+   than repeating the same sweep. */
+.botanical-sprig {
+  position: absolute;
+  left: 6%;
+  bottom: 30%;
+  width: 34%;
+  height: auto;
+  opacity: 0.85;
+  transform: rotate(18deg);
+}
+
+/* Scattered white blooms for depth — reuses the sitewide five-petal
+   bloom (already ivory/white via #motif-bloom's own CSS), just smaller
+   and at low opacity so they read as background depth rather than
+   competing with the branch/candles for attention. */
+.botanical-bloom {
+  position: absolute;
+  width: 15%;
+  height: auto;
+  opacity: 0.7;
+}
+.envelope-botanicals .botanical-bloom--1 { left: 20%; bottom: 42%; width: 12%; }
+.envelope-botanicals .botanical-bloom--2 { left: 42%; bottom: 58%; width: 9%; opacity: 0.55; }
+/* ENRICHED (this pass): a third bloom, asymmetrically placed near the
+   new extra candle rather than mirroring the first two. */
+.envelope-botanicals .botanical-bloom--3 { left: 64%; bottom: 50%; width: 8%; opacity: 0.6; }
+
+/* REMOVED (this pass): .envelope-seams (the full-width horizontal gold
+   hairline). With a real triangular flap, the body is only exposed in
+   the two side wedges beside the tip, not as a continuous band — a line
+   spanning the full width there read as a stray seam/shadow cutting
+   across the body rather than a real fold. No replacement needed: the
+   flap's own triangle edges (see --flap-clip + .flap-face below) are the
+   only fold line the design calls for now. */
+/* REPLACED (this pass): .envelope-reveal-triangle (a fake solid-color
+   fill crossfading olive -> beige) is gone. Per request, the triangular
+   opening should show the REAL invitation content (the verse section)
+   peeking through as the flap lifts, not a flat color standing in for
+   it. That needs an actual hole, not a colored layer — so instead of
+   filling the triangle, this fills ONLY the two wedges beside it (the
+   envelope's fixed exterior, which does stay solid olive always) and
+   leaves the triangle itself with nothing painted there at all.
+
+   One polygon, not two elements: the wedge shape is a "bowtie" — two
+   triangles that only touch at the single point (50%, var(--apex-y)),
+   both traced in one clip-path path (a standard technique; the shared
+   point is where the two loops meet, not an overlapping area, so the
+   default nonzero fill rule renders both cleanly). Left wedge: (0,0) ->
+   tip -> (0,apexY) -> close. Right wedge: (100%,0) -> tip -> (100%,
+   apexY) -> close. Interleaved below into one path.
+
+   Since #envelope-screen itself no longer paints a background across
+   the triangle (see its own rule above, background removed), whatever
+   is behind #envelope-screen — #invitation, once unhidden — shows
+   through there once the flap itself rotates past 90deg and stops
+   covering it. */
+.envelope-wedges {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(
+    0% 0%, 50% var(--apex-y), 100% 0%,
+    100% var(--apex-y), 50% var(--apex-y), 0% var(--apex-y)
+  );
+
+  /* Shares the flap's own --flap-light-gradient (visual polish pass) —
+     see the token's own comment above — rather than a flat fill, so the
+     two side wedges read as the same lit surface as the flap directly
+     across their shared diagonal edge, with no seam between them.
+     BUG FIX (reverting the "Reference-port pass" note this rule used to
+     carry): the sheen layer that used to live here was removed — no
+     per-element sheen can be relied on to match at a shared boundary
+     between differently-SIZED boxes (wedges is full-screen height;
+     .envelope-body is much shorter), even with identical values, because
+     percentage gradient stops resolve against each box's own dimensions.
+     That's what caused a visible horizontal seam line right through the
+     seal (wedges' sheen and .envelope-body's didn't actually line up).
+     Sheen now lives on .envelope-sheen, a single element spanning the
+     whole #envelope-screen — see that rule's own comment. Base layer
+     still shares --flap-light-gradient with the flap (that one's fine:
+     it's explicitly built to resolve to the SAME flat color at
+     var(--apex-y) regardless of box height, see the token's own comment
+     above).
+     BUG FIX (round 2): --pattern/--mottle removed from here too, same
+     reasoning as .envelope-body's own copy — see .envelope-sheen's
+     comment. This element IS the same inset: 0 size as .flap-face--front
+     and the shared .envelope-sheen overlay, so it was never actually the
+     SOURCE of a mismatch the way .envelope-body's shorter box was — but
+     there's no reason to keep computing the same texture twice (once
+     here, once in the shared overlay) when the overlay already covers
+     this element's entire visible area. */
+  background: var(--flap-light-gradient);
+}
+
+/* Shared sheen overlay (bug fix): the ONE thing that actually guarantees
+   the diagonal-light sheen matches everywhere it's visible — a single
+   element spanning the whole #envelope-screen (inset: 0, same box as
+   .flap-face--front below), painted once, rather than three separate
+   copies recomputed per element. Sits directly above .envelope-wedges in
+   the DOM (both position: absolute, z-index: auto, so paint order follows
+   DOM order — this paints after body+wedges, over both) and below
+   .flap-top (z-index: 3, always wins regardless of DOM order), so it
+   shows through wherever the flap ISN'T covering the screen and stays
+   hidden underneath wherever it is. Uses the exact same 128deg/0.10/0.05
+   60% recipe .flap-face--front's own sheen layer uses — since both are
+   computed over an IDENTICAL full-screen box, they're mathematically the
+   same gradient, so the boundary between "under the flap" and "not under
+   the flap" (the diagonal edge) shows no seam either, for the same
+   reason a shared single element can't mismatch itself. */
+/* BUG FIX (round 2): --mottle joins --pattern here now too — it hit the
+   EXACT same class of bug the sheen already had (see this rule's own
+   history above): --mottle's four radial-gradients use fixed PIXEL
+   ellipse sizes at PERCENTAGE positions, so the same "18% 20%" position
+   resolves to a completely different absolute spot on .envelope-body
+   (short box, ~32% of screen height) than on .envelope-wedges (full
+   screen height) — invisible on a tall mobile viewport where both boxes
+   are still fairly tall in absolute terms, but glaringly visible as a
+   horizontal band right through the seal on a short/wide desktop
+   viewport, where the size difference between the two boxes is much
+   more extreme. Moving --pattern here too, alongside it, for the same
+   reason it already had to move: any per-element texture layer at this
+   boundary is a latent seam waiting for the right aspect ratio to expose
+   it. mix-blend-mode: overlay applies to the whole composited result
+   (pattern+mottle+sheen together) rather than per-layer the way
+   .flap-face--front's own background-blend-mode array does — close
+   enough to the same visual character, and a single element genuinely
+   can't mismatch itself the way two differently-sized ones can. */
+.envelope-sheen {
+  position: absolute;
+  inset: 0;
+  background:
+    var(--pattern),
+    var(--mottle),
+    linear-gradient(128deg, rgba(255, 255, 255, 0.10), rgba(0, 0, 0, 0.05) 60%);
+  background-size: 70px 70px, auto, auto, auto, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* Interactive top flap — per the approved prototype (envelope-
+   prototype.html), this rotates on its own now; the seal below is a
+   separate element that fades out independently rather than being
+   attached to this and swinging open with it (an earlier version of
+   this site did that — see the HTML comment above .flap-top for the
+   history if it needs to come back).
+   perspective: 1000px lives on #envelope-screen (a proven pairing from
+   the prototype, functionally equivalent to the wider 1500px used
+   elsewhere on this site). transform-origin: top + a plain transition
+   (not a multi-step keyframe animation) is what makes rotateX read as a
+   real hinge fold rather than a flat fake — 0.8s, matching the
+   prototype's tested "Step 2" timing. */
+.flap-top {
+  position: absolute;
+  /* RESTORED (this pass): back to inset:0 (full screen) — a brief
+     rectangle-simplified version sized this to just var(--apex-y), which
+     is what forced the arch/triangle to be faked with a drawn line
+     instead of a real clip-path (--flap-clip's polygon coordinates are
+     authored relative to this full-screen box, apex at var(--apex-y)).
+     transform-origin/transform-style/z-index/filter/transition below are
+     completely unchanged by this — only the box being rotated got
+     bigger again; nothing about how it rotates changed. */
+  inset: 0;
+
+  transform-origin: top;
+  transform-style: preserve-3d;
+
+  z-index: 3;
+
+  filter:
+    drop-shadow(0 6px 10px rgba(70, 53, 28, 0.12));
+
+  /* SLOWED DOWN (this pass): 2.3s -> 3.5s, at request, same ease-in-out
+     timing function on both (was 1.1s -> 2.3s the pass before that).
+     REVEAL_DELAY_MS/PEEK_DELAY_MS in initEnvelope() (JS) and the sheen
+     sweep transition below are both keyed to this same duration and
+     scaled by the same ~1.52x factor to stay in sync. */
+  transition:
+    transform 3.5s ease-in-out,
+    filter 3.5s ease-in-out;
+}
+
+/* RESTORED (this pass): clip-path lives here, on the leaf faces, NOT on
+   .flap-top itself. .flap-top needs transform-style: preserve-3d for the
+   front/back rotateX(180deg) flip below to read as real 3D rather than a
+   flattened mirror-image; clip-path on an element forces ITS OWN
+   transform-style to compute as flat (a bug hit earlier in this project
+   when --flap-clip lived on .flap-top directly). Putting it on .flap-face
+   instead — a leaf with no 3D children of its own — gets the exact same
+   visible triangular silhouette on both faces without ever touching
+   .flap-top's preserve-3d. */
+.flap-face {
+  position: absolute;
+  inset: 0;
+  clip-path: var(--flap-clip);
+  backface-visibility: hidden;
+}
+
+/* FIX #2: was a flat solid --color-olive — the actual moving lid is the
+   single element that should catch the MOST light of the whole envelope
+   (it's the piece lifting toward the viewer), so it gets the strongest
+   radial highlight of any panel, same technique/tokens as
+   .flap-shade--* above. The existing ::before diagonal sheen sweep
+   (unchanged, below) is the separate animated highlight tied to the
+   open/close motion — this is just the flap's own resting-state color. */
+/* FIX #2: was brightest at the top (a radial highlight at 50% 0% plus a
+   light-to-deep diagonal) — backwards from how light actually reads on a
+   folded flap, and made the very top edge the brightest thing on the
+   whole page. Now a plain top-to-bottom linear, DEEP at the top edge
+   easing to the mid-tone toward the fold point — no radial highlight
+   here at all, since the brighter olive-light tone now lives on the
+   side/bottom panels instead (see their shared radial's position, moved
+   to var(--apex-y) above). */
+.flap-face--front {
+  /* Retuned (visual polish pass): was a flat top-to-bottom olive-deep ->
+     olive fill. Now a true directional-light gradient — lighter/warmer
+     near the flap's top edge (catching the most light) easing through
+     the base tone and into a slightly darker/cooler tone toward the tip,
+     where the fold meets the body (the "valley" of the crease). Both end
+     tones are the new --color-olive-flap-top/-bottom tokens above (~8-9%
+     lightness swing each way off the same base --color-olive stop), not
+     a bigger jump like the site's other olive-light/-deep panels use, so
+     this still reads as one continuous lit surface rather than a banded
+     stripe.
+     Design-system pass: same 7-layer --pattern/--mottle/sheen/base
+     structure as .envelope-wedges above (base stays --flap-light-gradient
+     — the flap is the envelope's single most prominent fabric surface,
+     so it carries the same weave/mottle too).
+     Reference-port pass: sheen now byte-for-byte from
+     envelope-concept-demo.html's .flap rule (0.10/0.05, 60% stop). */
+  background:
+    var(--pattern),
+    var(--mottle),
+    linear-gradient(128deg, rgba(255, 255, 255, 0.10), rgba(0, 0, 0, 0.05) 60%),
+    var(--flap-light-gradient);
+  background-size: 70px 70px, auto, auto, auto, auto, cover, cover;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: overlay, normal, normal, normal, normal, normal, normal;
+  /* Static edge shadows (non-animated, separate from .flap-top's own
+     animated `filter` transition above, untouched) — inset so they
+     aren't clipped by #envelope-screen's overflow:hidden. Two pairs
+     layered together: because the triangle narrows to a point at the
+     tip, an inset shadow offset in from the LEFT/RIGHT edges naturally
+     concentrates right along the flap's two diagonal edges rather than
+     across its wide top, so this reads as the fold crease the paper
+     makes against the body, not a straight side vignette.
+       - First pair: retuned this pass, 0.45 -> 0.22 opacity and a wider
+         14px -> 22px blur, so it reads as a soft, barely-there crease
+         (per request) rather than the stronger line it was.
+       - Second pair: new this pass, tighter (5px/-5px) and fainter
+         (0.16) — stacked on top of the first, softer pair for a sense of
+         the paper actually having a little thickness/relief right at the
+         fold, rather than one single flat shadow band.
+       - Third pair (reference-port pass): stands in for the reference's
+         "pocket occlusion" shadow, `inset 0 -22px 34px -12px
+         rgba(25,20,8,0.4)` on .flap in envelope-concept-demo.html. NOT
+         copied literally — box-shadow offsets/blur/spread only accept
+         lengths, never percentages, so there's no way to write "aim this
+         at var(--apex-y)" the way that Y-offset assumes; their -22px is
+         calibrated for their fixed-height 56%-tall flap box, and on ours
+         (inset: 0, i.e. full screen height) the same -22px would sit
+         nowhere near our apex, which can be anywhere from a few hundred
+         to 1000+px down depending on viewport. Ported the INTENT instead,
+         with the SAME color/opacity: one more x-offset pair, same
+         technique as the two above (concentrates near the apex because
+         the triangle narrows to a point there — geometry that scales
+         correctly at any aspect ratio, unlike a fixed Y-offset), wide and
+         soft enough to read as the flap occluding a pocket beneath it. */
+  box-shadow:
+    inset 10px 0 22px -12px rgba(30, 24, 14, 0.22),
+    inset -10px 0 22px -12px rgba(30, 24, 14, 0.22),
+    inset 5px 0 8px -5px rgba(20, 16, 8, 0.16),
+    inset -5px 0 8px -5px rgba(20, 16, 8, 0.16),
+    inset 22px 0 34px -14px rgba(25, 20, 8, 0.4),
+    inset -22px 0 34px -14px rgba(25, 20, 8, 0.4);
+  /* Fold-edge catch-light, shadow half (design-system pass): .flap-face
+     uses clip-path (a triangle), and box-shadow ignores clip-path
+     entirely — it would shadow the invisible full rectangular box
+     underneath, not the visible triangle. filter: drop-shadow works off
+     the actual rendered (post-clip) alpha shape instead, so it's the only
+     way to get a real contact shadow that follows the true silhouette.
+     Two stacked shadows (a soft wide one + a tighter close one) for a
+     more natural falloff than a single shadow gives. Static — not the
+     same property as .flap-top's own animated open/close filter, and not
+     touched by that transition. */
+  filter:
+    drop-shadow(0 11px 13px rgba(0, 0, 0, 0.75))
+    drop-shadow(0 3px 4px rgba(0, 0, 0, 0.6));
+}
+
+/* Embroidered vine/floral/dove motif centered on the flap. Sized off the
+   flap's own width (not a fixed px) so it scales with the envelope;
+   positioned toward the upper portion since --flap-clip's point reaches
+   down to the apex and the motif shouldn't crowd the seam/medallion
+   below it. The drop-shadow (dark below-right, matching the light hitting
+   from upper-left like the rest of the envelope's sheen) is what sells
+   "raised stitching" instead of a flat gold print — a real inset shadow
+   isn't available on an SVG <use>, so a tight, dark, mostly-opaque
+   drop-shadow stands in for it. */
+.flap-embroidery {
+  position: absolute;
+  left: 50%;
+  top: 8%;
+  width: min(70%, 300px);
+  height: auto;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 1.5px 1px rgba(60, 40, 20, 0.45));
+  pointer-events: none;
+}
+
+.flap-face--front::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+
+  background:
+    linear-gradient(
+      110deg,
+      transparent 36%,
+      rgba(255, 255, 255, 0.28) 48%,
+      rgba(255, 255, 255, 0.04) 56%,
+      transparent 68%
+    );
+
+  transform: translateX(-75%);
+  /* Synced to .flap-top's own duration (now 3.5s) — this sheen sweep is
+     a sub-motion of the flap opening, so it should share its exact
+     pacing. */
+  transition:
+    transform 3.5s ease-in-out;
+
+  pointer-events: none;
+}
+#envelope-screen.open .flap-face--front::before {
+  transform: translateX(75%);
+}
+/* The flap's underside, revealed mid-rotation — a warm beige lining
+   (the invitation's own beige, not more olive), like the lighter inside
+   paper of a real envelope glimpsed as it opens. */
+.flap-face--back {
+  transform: rotateX(180deg);
+  /* Design-system pass: same 7-layer structure as the front face, base
+     swapped for the beige lining's own gradient. Reference-port pass:
+     sheen matches the front face's exact 0.10/0.05 60% values. */
+  background:
+    var(--pattern),
+    var(--mottle),
+    linear-gradient(128deg, rgba(255, 255, 255, 0.10), rgba(0, 0, 0, 0.05) 60%),
+    linear-gradient(165deg, var(--color-beige) 0%, var(--color-beige-deep) 100%);
+  background-size: 70px 70px, auto, auto, auto, auto, cover, cover;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: overlay, normal, normal, normal, normal, normal, normal;
+}
+
+/* MOVED + SIMPLIFIED (this pass): .envelope-seal is now a child of
+   .flap-top (see the HTML) instead of a sibling of it, so it physically
+   opens with the flap rather than sitting fixed at the convergence
+   point. top/left/transform are unchanged (.flap-top shares the exact
+   same box as #envelope-screen used to provide, so the coordinates
+   still land in the same spot while closed) — no new transition here at
+   all, it inherits .flap-top's own rotateX open transition for free.
+   backface-visibility: hidden makes it disappear at the same instant
+   the front face does, rather than showing through backwards mid-flip.
+   The gold-ring circle background/box-shadow that used to sit behind
+   the medallion is removed per request — just the image now, sized up
+   since there's no ring to leave room for (160-220px -> 200-300px). */
+.envelope-seal {
+  position: absolute;
+  top: var(--apex-y);
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  width: var(--seal-size);
+  height: var(--seal-size);
+
+  backface-visibility: hidden;
+}
+
+/* REBUILT (design-system pass): the medallion is no longer a photo (was
+   the Thuluth calligraphy image, briefly swapped to Photos/rings.png to
+   test) — a pure CSS "dimensional wax medallion" per the new spec:
+     - a 4-stop radial gradient (bright warm highlight toward the
+       upper-left origin, through mid-gold, into a darker shadowed gold
+       at the outer edge) instead of a flat fill or 2-stop gradient.
+     - box-shadow layering: an inset highlight near the top edge, an
+       inset shadow near the bottom edge, a third soft inset ring pulled
+       a few px in from the edge for embossed relief, and a fourth,
+       non-inset shadow to lift the whole disc off the flap surface —
+       four distinct jobs, four separate shadow layers.
+   Keeps the asymmetric border-radius "blob" from the previous pass
+   (organic, not a machine-perfect circle; box-shadow follows
+   border-radius properly, so the emboss still hugs this exact shape). */
+.envelope-seal-medallion {
+  position: absolute;
+  inset: 2%;
+  width: 96%;
+  height: 96%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 47% 53% 49% 51% / 51% 47% 53% 49%;
+
+  /* SWAPPED (per request): the Thuluth calligraphy image, in place of the
+     flat-gold wax gradient — same embossed border/box-shadow/reflection
+     styling around it as before, just real medallion artwork inside
+     instead of a plain gold disc + text monogram.
+     background-size: cover (not contain) — the source PNG is a wide
+     677x369 canvas with the actual circular medallion inset on
+     transparent padding left/right, not a square crop; contain would
+     shrink the whole wide canvas (padding included) to fit, making the
+     circle look small and off-center. cover crops the transparent
+     margins instead — the circle is centered in the source image and the
+     crop math checks out within ~1% of its true edge on every side at
+     this box's aspect ratio, so it fills the seal's circular/blob shape
+     properly instead of floating inside a mostly-empty square. */
+  background-image: url("assets/images/Thuluth medallionEnvelope.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  /* NEW: Adds a crisp shiny gold rim border and a deep, heavy 3D drop-shadow */
+  border: 2px solid rgba(255, 243, 205, 0.85);
+  box-shadow:
+    inset 0 3px 4px rgba(255, 255, 255, 0.8),
+    inset 0 -6px 10px rgba(40, 20, 5, 0.7),
+    0 16px 30px rgba(10, 6, 2, 0.75);
+}
+.envelope-seal-medallion::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  
+  /* Crisp white light reflection */
+  background: radial-gradient(
+    ellipse 55% 45% at 28% 20%, 
+    #ffffff 0%, 
+    rgba(255, 255, 255, 0.4) 25%, 
+    transparent 60%
+  );
+  
+  box-shadow: inset -3px -5px 10px -2px rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  z-index: 1;
+}
+/* Concentric halo ring (design-system pass): a separate element, larger
+   than the medallion itself, sitting behind it — a thin gold outline
+   plus a faint beaded/dotted texture confined to a narrow band just
+   inside that outline. The dot pattern (radial-gradient, tiled) would
+   normally fill its whole box; `mask-image` with its own radial-gradient
+   (transparent center and outside, opaque only in a thin annulus) is
+   what restricts it to a ring instead of a filled disc. */
+/* Reference-port pass: restructured to match .seal-ring in
+   envelope-concept-demo.html exactly — two parts, not one. The ring
+   ITSELF is just a plain outline + its own box-shadow (an outer 3px halo
+   glow + an inset 1px rim); the dot texture lives on a SEPARATE ::before,
+   inset 5px from the ring (so the beading sits inside the outline rather
+   than on it), carrying the background-image + mask. Previous pass had
+   merged both jobs onto one element/one border. */
+.envelope-seal-halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* Reference: 88px halo vs. a 68px seal, a 1.294x ratio — since our seal
+     is responsive (--seal-size, not a fixed 68px), the RATIO is what's
+     portable, so 129% here rather than a literal px value. */
+  width: 129%;
+  height: 129%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid rgba(244, 233, 200, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(20, 16, 6, 0.12),
+    inset 0 0 0 1px rgba(20, 16, 6, 0.1);
+  pointer-events: none;
+}
+.envelope-seal-halo::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+
+  background-image: radial-gradient(rgba(244, 233, 200, 0.6) 0.6px, transparent 0.6px);
+  background-size: 7.2px 7.2px;
+  background-position: center;
+  opacity: 0.7;
+
+  /* NOTE: a bare `circle` with no explicit size keyword resolves against
+     farthest-corner (~1.41x the box's half-width for a square box), not
+     the box's true edge — so 100% here doesn't land exactly on this
+     ::before's own rendered boundary (a previous pass hit this same
+     default head-on for an earlier, self-authored version of this ring
+     and it hid the whole thing entirely). Left exactly as the reference
+     has it regardless — the effect is just a slightly wider, softer-edged
+     band than a literal reading of "61%/63%/100%" would suggest, which
+     reads fine at this size and matches the reference's own rendered
+     output, not just its source. */
+  -webkit-mask: radial-gradient(circle, transparent 61%, black 63%, black 100%);
+  mask: radial-gradient(circle, transparent 61%, black 63%, black 100%);
+}
+
+/* Monogram (bug fix pass): FONT BUG — 'Segoe Script'/'Brush Script MT'
+   are OS-installed fonts, never actually loaded by this site as
+   webfonts. On any machine without them (i.e. most non-Windows guests,
+   and even some Windows ones), the font-family fell through to the
+   'cursive' generic, whose actual mapped font varies by OS/browser and
+   — critically — some of those fallback fonts render the "&" glyph
+   broken/garbled rather than just "not as pretty." Pinyon Script is a
+   real Google Font, loaded via <link> in the <head> (see its own HTML
+   comment) — same "&" renders correctly everywhere now, not just on
+   whichever OS happens to have a matching system font installed.
+   font-size ratio updated to match too: the reference's own font-size
+   went from 25px to 34px on a 68px seal alongside this same font swap
+   (0.5 ratio instead of ~0.368) — Pinyon Script's letterforms sit
+   smaller within their own em-box than Segoe Script's did, so the same
+   ratio would have read visibly smaller at this seal's actual size.
+   Dual text-shadow — light offset one way, dark the opposite — is what
+   sells "engraved into the gold" instead of flatly printed on it
+   (byte-for-byte from the reference, including its light-bottom-right/
+   dark-top-left direction — the opposite of the upper-left-light
+   convention the rest of this envelope uses, but this stays a verbatim
+   port, not a redesign). */
+/* BUG FIX: color darkened (#5a4522 -> #2b1c0d, a deep near-black coffee
+   brown) and a thin matching text-stroke added — Pinyon Script's "&" is a
+   fine, thin-stroked flourish, and against the seal's own bright gold
+   gradient (especially now that the medallion carries a much brighter
+   highlight/reflection layer than before) a mid-brown fill wasn't enough
+   contrast to read clearly at this size. -webkit-text-stroke gives the
+   thin parts of the glyph a hard, consistent edge instead of relying on
+   fill color alone (Chrome/Edge/Safari only — Firefox just ignores the
+   property and falls back to the plain darker fill, still an
+   improvement on its own). Slight positive letter-spacing added too, so
+   the ampersand has a little breathing room from T/L instead of sitting
+   flush against them. */
+.envelope-seal-monogram {
+  font-family: 'Pinyon Script', cursive;
+  font-size: calc(var(--seal-size) * 0.5);
+  color: #2b1c0d;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  -webkit-text-stroke: 0.4px #2b1c0d;
+  text-shadow:
+    1px 1.2px 0 rgba(255, 255, 255, 0.35),
+    -0.6px -0.6px 0.8px rgba(0, 0, 0, 0.5);
+}
+
+/* Flanking ornamentation (material upgrade pass): two small bespoke gold
+   sprigs (plain inline paths — see the HTML comment above these elements
+   for why this is hand-drawn rather than a reused <use> symbol) sitting
+   directly beside the seal, leaves pointing in toward it, so the seal
+   reads as a framed centerpiece rather than an element floating alone on
+   the flap. Plain children of .flap-top (siblings of .envelope-seal,
+   positioned in that same shared coordinate box), placed BEFORE
+   .envelope-seal in the HTML so the medallion always paints on top of
+   them where the two overlap. Left/right share --seal-r (half the seal's
+   own clamp() size) as their anchor offset so they stay glued to the
+   seal's edge at every screen size instead of a fixed px gap that would
+   drift at extremes. */
+/* Reference-port pass: sizing/position/colors now match
+   envelope-concept-demo.html's .sprig rule (34x34px, plain inline
+   fill/stroke on the SVG paths themselves — see the HTML — so no
+   .flourish-stem/.flourish-leaf color rules are needed here anymore).
+   Position is the one thing NOT copied literally: the reference's fixed
+   "left: calc(50% - 68px)" assumes a fixed 68px seal (68 = seal diameter,
+   so the sprig's inner edge sits flush against the seal's edge) — ours
+   uses --seal-r (half of the responsive --seal-size) so that same
+   flush-against-the-edge relationship holds at any seal size instead of
+   just their one demo width. */
+.seal-flourish {
+  --seal-r: calc(var(--seal-size) / 2);
+  position: absolute;
+  top: var(--apex-y);
+  width: 34px;
+  height: 34px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  backface-visibility: hidden;
+  opacity: 0.85;
+}
+.seal-flourish--left {
+  left: calc(50% - var(--seal-r) - 34px);
+}
+.seal-flourish--right {
+  left: calc(50% + var(--seal-r));
+  transform: translateY(-50%) scaleX(-1);
+}
+
+/* Light wreath framing (material upgrade pass): four small blooms
+   (reusing #motif-bloom, same asset/size class as the sitewide botanical
+   corners) arranged loosely around the seal's own perimeter — denser,
+   closer-in ornamentation around the centerpiece itself, rather than
+   density living only in the far page corners. Kept sparse/small (this
+   is a "light" wreath, not a dense ring) so the seal and its flourishes
+   stay the clear focal point. Same --seal-r anchor as .seal-flourish so
+   the ring scales with the seal at every screen size. */
+.seal-wreath-bloom {
+  --seal-r: calc(var(--seal-size) / 2);
+  position: absolute;
+  width: clamp(20px, 4vmin, 32px);
+  height: auto;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  backface-visibility: hidden;
+  opacity: 0.6;
+}
+.seal-wreath-bloom--top-left {
+  left: calc(50% - var(--seal-r) * 0.72);
+  top: calc(var(--apex-y) - var(--seal-r) * 0.98);
+}
+.seal-wreath-bloom--top-right {
+  left: calc(50% + var(--seal-r) * 0.72);
+  top: calc(var(--apex-y) - var(--seal-r) * 0.98);
+  opacity: 0.5;
+}
+.seal-wreath-bloom--bottom-left {
+  left: calc(50% - var(--seal-r) * 1.15);
+  top: calc(var(--apex-y) + var(--seal-r) * 0.78);
+  opacity: 0.5;
+}
+.seal-wreath-bloom--bottom-right {
+  left: calc(50% + var(--seal-r) * 1.15);
+  top: calc(var(--apex-y) + var(--seal-r) * 0.78);
+}
+
+/* Caption text ("دعوة زفاف" / "اضغط للفتح") — stays in place and only
+   fades via .is-unlocking. Top offset accounts for the seal's own
+   height (--seal-size, shared with .envelope-seal/.seal-flourish/
+   .seal-wreath-bloom — see its own token comment) plus a gap, so it
+   clears the seal sitting at the crease convergence point above it. */
+.envelope-caption {
+  position: absolute;
+  top: calc(var(--apex-y) + (var(--seal-size) / 2) + 1.6rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: min(86vw, 380px);
+  pointer-events: none;
+}
+
+.envelope-script {
+  font-family: var(--font-ar-display);
+  font-size: clamp(1.5rem, 6vw, 1.9rem);
+  /* Explicit ivory, not --text-accent: --text-accent resolves to a dark
+     olive tone that's nearly illegible against the envelope's own dark
+     olive panels — needs a light color regardless of theme. */
+  color: var(--color-ivory);
+  line-height: 1.5;
+}
+
+.envelope-hint {
+  margin-top: 0.8rem;
+  font-family: var(--font-ar-body);
+  font-size: 0.8rem;
+  font-weight: 500;
+  /* Same reasoning as .envelope-script above: a dark ink tone would be
+     illegible against the dark olive envelope. */
+  color: var(--color-gold-hairline);
+  opacity: 0.9;
+  animation: hint-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes hint-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.95; }
+}
+
+/* ---------- 4. ENVELOPE OPEN ANIMATION ----------
+   Matches the approved prototype (envelope-prototype.html) step for
+   step:
+     Step 1 — the seal fades out + scales down on its own (~0.3s)
+     Step 2 — the flap folds open in true 3D, rotateX(0deg) to
+              rotateX(-180deg) around the hinge at its top edge (0.8s),
+              its contact shadow growing over the same span
+     Step 3 — the invitation itself (LeensWeddingInvitation's #invitation,
+              standing in for the prototype's "card") rises slightly and
+              scales up to full size while fading in (~1s)
+     Step 4 — #envelope-screen dims/blurs as it fades away, so the
+              invitation reads as coming into focus rather than the
+              envelope just vanishing
+   Steps 2-4 are triggered together, right after Step 1 finishes (see
+   initEnvelope() in LeensWeddingInvitation.js) — not chained one after
+   another, since they're independent transitions on different elements
+   that read as one continuous motion when they overlap. */
+
+/* FIX #1: .monogram-medallion.is-unlocking removed along with the seal
+   itself — there's no medallion left to fade/shrink on tap anymore. */
+
+/* Tap-hint text: a plain opacity transition, fired the instant the seal
+   is clicked so the "اضغط للفتح" prompt is gone well before the flap
+   finishes its fold rather than lingering through the whole sequence.
+   .envelope-hint's own infinite hint-pulse animation (above) must be
+   explicitly cancelled here — a running CSS animation always wins over a
+   transition targeting the same property, so without `animation: none`
+   the pulse would keep overriding this opacity:0 forever and the hint
+   would never actually disappear. */
+.envelope-script,
+.envelope-hint {
+  transition: opacity 0.5s ease;
+}
+.envelope-script.is-unlocking,
+.envelope-hint.is-unlocking {
+  animation: none;
+  opacity: 0;
+}
+
+/* Step 2 — the flap fold: a true 3D rotation around the hinge at its top
+   edge (see transform-origin/transform-style on .flap-top and
+   perspective on #envelope-screen above), not a flat scale/skew fake.
+   Driven by the transition declared on .flap-top itself — adding .open
+   to the outer #envelope-screen container just sets the end state on
+   this descendant selector, and the browser interpolates the rotation
+   and the shadow growing larger/softer/darker smoothly over that
+   transition, like the flap casting a bigger shadow the further it
+   lifts off the surface beneath it. */
+#envelope-screen.open .flap-top {
+  /* EXPERIMENT: sign flipped (-180deg -> 180deg) at request, to see the
+     opposite fold direction. Per earlier testing this makes the flap and
+     seal balloon toward the viewer instead of receding/tucking away —
+     kept here only to compare; revert to -180deg to go back. */
+  transform: rotateX(180deg);
+
+  /* Ported: fades to alpha 0 (was rgba(...,0.25), a still-visible larger
+     shadow) — a flap rotated all the way to edge-on/behind isn't there
+     to cast a forward shadow anymore, so the reference's spec fades it
+     out completely by the time the rotation finishes, on its own
+     cubic-bezier(0.1,0.7,0.2,1) curve declared above (front-loaded, so
+     the shadow is mostly gone well before the flap is fully open). Same
+     offset/blur/color as the resting warm-brown shadow, alpha only. */
+  filter:
+    drop-shadow(
+      0 34px 40px rgba(90, 58, 40, 0)
+    );
+}
+
+/* ==========================================================================
+   5. MAIN INVITATION SHELL
+   ========================================================================== */
+.invitation {
+  position: relative;
+  /* Reference-port pass: .pocket-card in envelope-concept-demo.html uses
+     a SIMPLER 2-layer background than .body/.flap get (just --pattern +
+     one smooth gradient — no --mottle, no sheen layer) — this card
+     surface is meant to read as flatter/calmer than the envelope's own
+     fabric, which is exactly why the mottle/sheen were dropped here
+     rather than copied over from the 7-layer version this rule carried
+     in the previous pass. Base color stays var(--bg-page) (not the
+     reference's literal #fdfaf3/#f3ecdd) — this site's page background is
+     already theme-aware (swaps for dark mode), and hardcoding a fixed
+     cream pair here would break that. */
+ .invitation {
+  position: relative;
+  
+  /* Layer 1: Fiber Noise Pattern
+     Layer 2: Directional surface lighting (top-left to bottom-right)
+     Layer 3: Base theme color */
+  background:
+    var(--pattern),
+    linear-gradient(135deg, var(--surface-light) 0%, transparent 50%, var(--surface-shadow) 100%),
+    var(--bg-page);
+  background-size: 70px 70px, cover, cover;
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-blend-mode: var(--grain-blend), normal, normal;
+
+  /* Box constraints and frames */
+  width: auto;
+  margin: clamp(10px, 3vw, 22px);
+  border: 4px solid var(--frame-color);
+  border-radius: clamp(14px, 3vw, 24px);
+  transition: border-color 400ms ease;
+
+  /* The 600gsm physical shadow stack + thin gold ring */
+  box-shadow: 
+    inset 0 0 0 1.5px var(--color-gold-muted),
+    0 2px 0px rgba(92, 107, 59, 0.2),
+    0 3px 1px rgba(0, 0, 0, 0.1),
+    0 20px 40px -10px rgba(29, 26, 19, 0.25);
+}
+  /* Simple olive frame (this pass) — a border on #invitation's own box
+     rather than a position:fixed overlay (an earlier version of this
+     did that, but a fixed frame stays pinned to the viewport as the
+     guest scrolls, reading as "the frame is stuck" rather than "the
+     invitation has a border" — moving it here means it scrolls exactly
+     with the content, like any other border). box-sizing: border-box
+     (set globally in the reset) means adding this border doesn't shift
+     any existing section spacing.
+     FIX: .invitation also carries .screen (width: 100%, see the reset
+     section) — combined with a margin on a page using dir="rtl", that's
+     an over-constrained box (width + both margins can't all be
+     satisfied), and per the CSS box model spec the browser resolves it
+     in RTL by forcing margin-left negative rather than shrinking the
+     box, which shoved the entire invitation off-screen to the left.
+     width: auto here overrides .screen's 100% (same specificity, later
+     in the stylesheet wins) so the box actually shrinks to leave room
+     for the margins below, the normal/expected behavior.
+     Equal margin on all four sides now (was a taller top margin trying
+     to clear .site-controls from outside the frame — moved the other
+     way instead, see .site-controls below, which now sits INSIDE this
+     border at the top rather than above it). */
+  width: auto;
+  margin: clamp(10px, 3vw, 22px);
+  border: 4px solid var(--frame-color);
+  border-radius: clamp(14px, 3vw, 24px);
+  transition: border-color 400ms ease;
+
+  /* 3. The 600gsm physical shadow stack + Design-system thin gold ring */
+  box-shadow: 
+    /* Inner gold ring (existing) */
+    inset 0 0 0 1.5px var(--color-gold-muted),
+    /* The physical edge of the thick paper (sharp, dark, slightly offset down) */
+    0 2px 0px rgba(92, 107, 59, 0.2),
+    0 3px 1px rgba(0, 0, 0, 0.1),
+    /* The ambient room occlusion (soft, wide, lifting it off the desk) */
+    0 20px 40px -10px rgba(29, 26, 19, 0.25);
+}
+/* Open L-shaped corner brackets (design-system pass) at two opposite
+   corners — not filled shapes, just two open border sides each, muted
+   gold, for the "finished, framed look" the request asks for. Part of
+   .invitation's own box (not position: fixed) so they scroll with the
+   page exactly like its border already does, rather than staying pinned
+   to the viewport — same reasoning the border's own comment above gives
+   for why IT isn't fixed either. */
+.invitation::before,
+.invitation::after {
+  content: "";
+  position: absolute;
+  width: clamp(20px, 4vw, 30px);
+  height: clamp(20px, 4vw, 30px);
+  border: 1.5px solid var(--color-gold-muted);
+  opacity: 0.85;
+  pointer-events: none;
+}
+.invitation::before {
+  top: 10px;
+  left: 10px;
+  border-right: none;
+  border-bottom: none;
+}
+.invitation::after {
+  bottom: 10px;
+  right: 10px;
+  border-left: none;
+  border-top: none;
+}
+
+/* Step 3 (prototype's naming — see envelope-prototype.html): the
+   invitation rises slightly and scales up to "command the center of the
+   screen, becoming the focal point" — a small, restrained version of
+   that (translateY + scale, no rotation) rather than a dramatic slide,
+   after an earlier, much bigger version of this same idea (a 45vh rise
+   with a 2.5deg tilt) read as jarring in practice on a full page of
+   text. ease-out so it decelerates into place like it's being set down,
+   not arriving at constant speed. Triggered together with the flap
+   opening (Step 2) rather than waiting for it to finish (see
+   initEnvelope() in LeensWeddingInvitation.js).
+   translateY is in px, not vh/%: #invitation holds every section on the
+   page (far taller than one viewport), so a percentage here would be
+   relative to that ENTIRE height, and even vh can read as a bigger jump
+   than intended depending on viewport — a small fixed px offset matches
+   the prototype's own literal translateY(-20px) most directly.
+   transform-origin stays pinned to the top: the top section is the only
+   part actually visible when this starts, so it needs to grow/settle in
+   place rather than scale from a center many screens down the page. */
+#invitation {
+  transform-origin: 50% 0;
+}
+#invitation:not(.is-visible) {
+  /* CHANGED (this pass): opacity 0 -> 1. #invitation now renders (see
+     initEnvelope() in the JS) from the very start of the tap, not just
+     at the delayed .is-visible moment — the point is for the verse
+     section to be visible through the flap's triangular opening as it
+     rotates open (see .envelope-wedges below). Opacity 0 here would have
+     defeated that entirely (nothing to see through the opening until
+     .is-visible fires much later). The slight translateY/scale offset
+     stays, so it still visibly "arrives"/settles once .is-visible adds
+     below — just no longer invisible before that. */
+  transform: translateY(20px) scale(0.9);
+}
+#invitation.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  /* SLOWED DOWN (this pass), proportionally with the flap's 1.1s -> 2.3s
+     change: 1.4s -> 1.8s. The actual "wait for the flap to nearly finish
+     before starting" stagger is a JS delay (see FLAP_MS/REVEAL_DELAY_MS
+     in initEnvelope()), not a CSS transition-delay — the class-toggle
+     here is already JS-driven for other reasons (initScrollReveal/
+     startCountdown etc. firing off the same call). */
+  transition: opacity 1.8s ease-in-out, transform 1.8s ease-in-out;
+}
+
+/* Warm ivory/cream texture, fixed behind all scrolling content, with a
+   faint sage wash at the top of the page. Stays a constant ivory/cream
+   gradient the whole way down on purpose — an earlier version blended
+   this toward a dusk/mauve palette as the guest scrolled, which read as
+   the page losing its Italian-villa sage identity rather than a
+   deliberate lighting change, so the tint was removed. The venue
+   illustration's scroll parallax (below) carries the "the page is alive
+   as you scroll" feeling instead, without touching color. */
+.stone-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--bg-page);
+  /* Layer 1: Ambient Vignette (darker at the screen edges)
+     Layer 2: Directional Wash (light from top-left to bottom-right) */
+  background-image:
+    radial-gradient(120% 100% at 50% 50%, transparent 30%, var(--bg-vignette) 100%),
+    linear-gradient(135deg, var(--surface-light) 0%, transparent 40%, var(--surface-shadow) 100%);
+  transition: background-color 400ms ease;
+}
+
+.stone-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--texture-grain);
+  /* Dynamically swaps from shadows (light mode) to highlights (dark mode) */
+  mix-blend-mode: var(--grain-blend);
+  opacity: var(--grain-opacity);
+  pointer-events: none;
+  transition: opacity 400ms ease;
+}
+
+.section {
+  position: relative;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 3.5rem 1.25rem;
+}
+
+/* ==========================================================================
+   6. QUR'ANIC VERSE + FORMAL FAMILY INVITATION
+   Serene and spacious — the first thing guests read once the envelope
+   opens. Deliberately restrained: no heavy ornament competing with the verse.
+   ========================================================================== */
+.verse-section {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 2.2rem;
+  padding: 4rem 1.5rem;
+}
+
+/* "يتشرف" — governs the family names below it, same as it did before
+   they were split into two columns */
+.verse-lead-text {
+  font-family: var(--font-ar-display);
+  font-weight: 700;
+  /* FIX (this pass): ceiling raised, along with the other verse-section
+     text below — all had clamp() maxes tuned for tablet width at best,
+     so they read as small on an actual desktop monitor. Floors (the
+     mobile-facing sizes) are untouched. */
+  font-size: clamp(1.3rem, 4.5vw, 1.95rem);
+  color: var(--text-accent);
+}
+
+/* Basmala: same Mushaf-style Quranic face as the verse below it, but
+   distinguished as its own heading — smaller, gold rather than ink, with
+   a touch of letter-spacing rather than the verse's dense line-height —
+   so it reads as a respectful preamble rather than a repeat of the verse.
+   --color-gold-muted (not the plain hairline gold) since at this size and
+   full opacity the plain gold reads noticeably brighter/amber than it
+   does as a thin ring/line elsewhere. */
+.basmala {
+  /* Using the elegant, cascading script */
+  font-family: var(--font-ar-nastaliq);
+  font-size: clamp(1.4rem, 5vw, 2.2rem); /* Bumped size slightly as Nastaliq reads smaller */
+  font-weight: 700;
+  
+  /* Deep, legible bronze ink instead of the muddy gold foil */
+  color: var(--color-bronze-deep);
+  margin: 0 auto;
+  line-height: 1.8;
+  
+  /* Physical indentation (Letterpress effect) */
+  text-shadow: 
+    -1px -1px 1px rgba(20, 15, 8, 0.15), 
+    1px 1px 1px rgba(255, 255, 255, 0.95);
+}
+
+.verse-text {
+  font-family: var(--font-ar-quran);
+  font-size: clamp(1.5rem, 5.6vw, 2.6rem);
+  line-height: 2.15;
+  color: var(--text-primary);
+  max-width: 22ch;
+  margin: 0 auto;
+}
+
+.verse-reference {
+  font-family: var(--font-ar-body);
+  /* FIX (this pass): was a flat 0.95rem — never scaled up on desktop. */
+  font-size: clamp(0.95rem, 1.4vw, 1.1rem);
+  color: var(--text-accent);
+  opacity: 0.85;
+  margin-top: -1.2rem;
+}
+
+/* Two mirrored family columns, stacked on mobile (bride's family first,
+   per spec) and side by side from 640px up — same breakpoint already used
+   for .hero-frame. The divider between them only appears once they're
+   side by side; a vertical line has no role once they're stacked. */
+.family-columns {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.6rem;
+  width: 100%;
+}
+
+.family-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.family-divider {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .family-columns {
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+    gap: 3.25rem;
+  }
+  .family-column {
+    flex: 1;
+    justify-content: center;
+  }
+  .family-divider {
+    display: block;
+    width: 1px;
+    background: var(--color-gold-muted);
+    opacity: 0.5;
+  }
+}
+
+/* Family names + the formal invitation line below: back to the site's
+   standard readable body face rather than a dedicated decorative one —
+   Aref Ruqaa and Markazi Text were both tried here and rolled back. */
+.family-name {
+  font-family: var(--font-ar-body);
+  font-weight: 500;
+  font-size: clamp(1rem, 3.6vw, 1.4rem);
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.family-consort {
+  font-family: var(--font-ar-body);
+  font-size: clamp(0.92rem, 3.2vw, 1.2rem);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Compound selector so this reliably wins over the later, equal-specificity
+   base `.ornament-divider` rule regardless of source order, even though
+   both currently resolve to the same sage color */
+.ornament-divider.ornament-divider--olive {
+  width: min(180px, 50%);
+  color: var(--color-sage);
+}
+
+/* The formal invitation sentence — the emotional centerpiece of this
+   block, so it's sized up and color-shifted a step past the family names
+   above it (the site's deep-olive accent, --color-sage-dark) to visually
+   lead the eye here first. Generous line-height and a
+   comfortable measure matter more here than anywhere else on the page.
+   Font-family rolled back to the site's standard body face, same as the
+   family names above (Aref Ruqaa and Markazi Text were both tried and
+   rolled back). */
+.formal-invitation-text {
+  font-family: var(--font-ar-body);
+  font-weight: 700;
+  font-size: clamp(1.25rem, 5vw, 1.95rem);
+  line-height: 2;
+  color: var(--text-accent);
+  max-width: 34ch;
+  margin: 0 auto;
+}
+
+/* Corner botanical accent: a single branch with two blooms, tucked into
+   one corner of the verse page. Kept out of the section's child-cascade
+   stagger (see .corner-motif in the :not() exclusions further down) since
+   it's background framing, not a reading beat — it still fades in with
+   the section as a whole via [data-reveal]. */
+.corner-motif {
+  position: absolute;
+  bottom: 4%;
+  inset-inline-end: 2%;
+  width: min(30vw, 130px);
+  pointer-events: none;
+  z-index: 0;
+}
+.corner-motif-branch {
+  width: 100%;
+  height: auto;
+  opacity: 0.6;
+  transform: scaleX(-1) rotate(-6deg);
+}
+.corner-motif-bloom {
+  position: absolute;
+  width: 20%;
+  height: auto;
+  opacity: 0.85;
+}
+.corner-motif-bloom--verse-1 { top: 30%; inset-inline-end: 44%; transform: rotate(-8deg); }
+.corner-motif-bloom--verse-2 { top: 52%; inset-inline-end: 18%; transform: rotate(10deg) scale(0.82); }
+
+/* Top-right counterpart, balancing the bottom-left one above. A touch
+   smaller and set further into the corner since this one sits closer to
+   the basmala than the bottom accent sits to the formal invitation text. */
+.corner-motif--verse-top {
+  top: 2%;
+  bottom: auto;
+  inset-inline-start: 3%;
+  inset-inline-end: auto;
+  width: min(24vw, 105px);
+}
+.corner-motif--verse-top .corner-motif-branch {
+  opacity: 0.55;
+  transform: rotate(10deg);
+}
+.corner-motif-bloom--verse-top-1 { top: 10%; inset-inline-start: 6%; transform: rotate(6deg); }
+.corner-motif-bloom--verse-top-2 { top: 44%; inset-inline-start: 32%; transform: rotate(-16deg) scale(0.78); }
+
+/* ==========================================================================
+   7. HERO SECTION
+   ========================================================================== */
+.hero-section {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.25rem;
+}
+
+/* No enclosing border/frame — content sits directly on the page background */
+.hero-frame {
+  position: relative;
+  width: 100%;
+  text-align: center;
+  padding: 3rem 1.6rem;
+}
+
+/* --- Monogram: flowing signature script, no wreath or ring ---
+   Sized up from the old wreathed version (which no longer needs the extra
+   width a circular wreath silhouette demanded) so it keeps real presence
+   as the first thing guests see. */
+.monogram-emblem {
+  /* FIX (this pass): ceiling raised (250px -> 320px) along with
+     .monogram-script's font-size below — this wrapper's width was
+     capping out well before the desktop range, same issue found
+     sitewide this pass. Used for both the hero and closing monograms
+     (identical markup, see the HTML), so this one fix covers both. */
+  width: clamp(190px, 48vw, 320px);
+  margin: 0 auto 1.7rem;
+}
+.monogram-script {
+  font-family: var(--font-script);
+  font-weight: 400;
+  font-size: clamp(3.4rem, 16vw, 6rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--color-sage-dark);
+  
+  /* Removed the floating drop-shadow, added Letterpress deboss */
+  text-shadow: 
+    -1px -1px 1px rgba(20, 15, 8, 0.25), 
+    1px 1px 1px rgba(255, 255, 255, 0.95);
+}
+/* A glow-only fix was tried here first (keeping the fixed sage-dark
+   color and just lifting it with a drop-shadow), on the assumption the
+   brief's "keep script-name colors fixed" ruled out recoloring — but
+   that read as barely legible in practice, and the follow-up feedback
+   confirmed it: recolor this like the rest of the dark theme's text. */
+[data-theme="dark"] .monogram-script {
+  color: var(--text-primary);
+}
+.monogram-amp {
+  /* The "&" reads as a script connector rather than a hard divider —
+     smaller and dropped slightly, like a flourish linking the two
+     initials rather than a separate character */
+  font-size: 0.62em;
+  color: var(--color-gold-hairline);
+  margin: 0 -0.04em;
+  vertical-align: -0.08em;
+}
+.monogram-swash {
+  display: block;
+  width: min(58%, 140px);
+  height: auto;
+  margin: -0.4rem auto 0;
+  color: var(--color-gold-hairline);
+  opacity: 0.75;
+}
+
+/* --- Names --- */
+.hero-names {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  column-gap: 0.5rem;
+  row-gap: 0.2rem;
+  line-height: 1.3;
+  margin-bottom: 1.6rem;
+}
+.script-name {
+  font-family: var(--font-ar-display);
+  font-weight: 700;
+  font-size: clamp(2.8rem, 13vw, 4.4rem);
+  color: var(--color-sage-dark);
+  line-height: 1.3;
+  
+  /* Letterpress deboss effect */
+  text-shadow: 
+    -1px -1px 1px rgba(20, 15, 8, 0.25), 
+    1px 1px 1px rgba(255, 255, 255, 0.95);
+}
+/* Same story as .monogram-script above — recolored (not just glowing)
+   in dark mode, same as the rest of the theme's text, after the
+   glow-only attempt proved too subtle to read comfortably. */
+[data-theme="dark"] .script-name {
+  color: var(--text-primary);
+}
+.hero-names-amp {
+  font-family: var(--font-ar-display);
+  font-size: clamp(1.6rem, 6vw, 2.1rem);
+  color: var(--color-gold-hairline);
+  opacity: 0.9;
+  padding: 0 0.15em;
+}
+
+/* --- Bouquet photo: a supporting accent beneath the names, not a
+   dominant element. Sized as a fraction of .hero-frame's own content
+   width (this is a plain block box, so % here resolves against that,
+   scaling proportionally at every breakpoint without a media query). --- */
+.hero-bouquet {
+  position: relative;
+  width: clamp(132px, 40%, 250px);
+  margin: -0.2rem auto 1.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Soft warm glow behind the bouquet, standing in for a hard-edged frame —
+   the photo itself is already a clean transparent cutout with an organic
+   silhouette, so this reads as a gentle lift/vignette rather than a box */
+.hero-bouquet::before {
+  content: "";
+  position: absolute;
+  inset: -6%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-gold-hairline) 22%, transparent) 0%, transparent 68%);
+  z-index: 0;
+}
+.hero-bouquet-photo {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 14px 20px rgba(87, 76, 51, 0.24));
+}
+
+/* --- Divider --- */
+.ornament-divider {
+  width: min(160px, 45%);
+  margin: 0 auto 1.4rem;
+  color: var(--color-sage);
+  opacity: 0.8;
+}
+
+/* Shared heading style for every section from here on. The small hairline
+   kicker above each title is a quiet editorial signature — the kind of
+   detail a print invitation suite would repeat as a running motif — done
+   once here via ::before rather than per-section markup. */
+.section-title {
+  position: relative;
+  font-family: var(--font-ar-display);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 6vw, 2rem);
+  color: var(--text-accent);
+  text-align: center;
+  margin-bottom: 0.6rem;
+  
+  /* Softer Letterpress deboss effect */
+  text-shadow: 
+    -1px -1px 1px rgba(20, 15, 8, 0.15), 
+    1px 1px 1px rgba(255, 255, 255, 0.85);
+}
+.section-title::before {
+  content: "";
+  display: block;
+  width: 30px;
+  height: 1px;
+  margin: 0 auto 0.9rem;
+  background: var(--color-gold-muted);
+  opacity: 0.65;
+}
+.section-subtitle {
+  font-family: var(--font-ar-body);
+  /* FIX: was a flat 1rem — never scaled up on desktop, same pattern
+     fixed across several other text elements this pass. */
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  letter-spacing: 0.015em;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+/* ==========================================================================
+   7a. VENUE ILLUSTRATION
+   ========================================================================== */
+.venue-banner {
+  position: relative;
+  width: 100%;
+  padding: 1rem 0 2.5rem;
+}
+.venue-illustration {
+  width: 100%;
+  height: auto;
+  display: block;
+  /* Gentle drift as the guest scrolls past — see initScrollAtmosphere()
+     in the JS, which keeps this well under 20px so it reads as depth,
+     not as the illustration visibly "moving" */
+  transform: translateY(var(--parallax-y));
+  will-change: transform;
+}
+
+/* Small branch+bloom cluster layered at the banner's lower-right edge —
+   dimmed and desaturated toward the illustration's own sage linework
+   (rather than the fuller opacity used on the photo-based envelope
+   accents) so it blends into the painted scene instead of sitting on
+   top of it like a sticker. */
+.venue-accent-branch {
+  position: absolute;
+  bottom: 6%;
+  inset-inline-end: 4%;
+  width: min(13vw, 92px);
+  height: auto;
+  opacity: 0.55;
+  transform: scaleX(-1) rotate(6deg);
+  filter: saturate(0.85);
+}
+.venue-accent-bloom {
+  position: absolute;
+  bottom: 15%;
+  inset-inline-end: 11%;
+  width: min(5vw, 34px);
+  height: auto;
+  opacity: 0.6;
+  transform: rotate(-6deg);
+}
+
+/* ==========================================================================
+   7c. THE DATE — SCRATCH-TO-REVEAL CARDS
+   ========================================================================== */
+.scratch-cards {
+  display: flex;
+  justify-content: center;
+  gap: clamp(0.7rem, 3vw, 1.2rem);
+  flex-wrap: nowrap;
+}
+.scratch-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  width: clamp(88px, 27vw, 122px);
+}
+/* Finer border (the site's --color-gold-muted hairline, not a translucent
+   rgba guess) and a soft warm-toned shadow paired with a faint inner top
+   highlight, like light catching the edge of pressed card stock */
+.scratch-face {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-section);
+  border: 1px solid var(--border-color);
+  box-shadow:
+    0 10px 22px -14px rgba(87, 76, 51, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+.scratch-value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  text-align: center;
+  font-family: var(--font-ar-display);
+  font-weight: 700;
+  font-size: clamp(1.7rem, 8vw, 2.3rem);
+  color: var(--text-accent);
+}
+.scratch-value--word {
+  font-size: clamp(1.05rem, 5.5vw, 1.35rem);
+}
+.scratch-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  touch-action: none;
+  transition: opacity 550ms ease;
+}
+.scratch-canvas.is-cleared {
+  opacity: 0;
+  pointer-events: none;
+}
+.scratch-label {
+  font-family: var(--font-ar-body);
+  /* FIX: was a flat 0.85rem — scales together with .countdown-label
+     now (fixed earlier this pass), which sits right below it visually
+     and was otherwise noticeably mismatched in size on desktop. */
+  font-size: clamp(0.85rem, 1.4vw, 1.05rem);
+  color: var(--text-secondary);
+}
+
+/* Tiny botanical accent beneath the three cards — branch only, clear of
+   the cards themselves */
+.date-sprig {
+  display: block;
+  width: min(15vw, 60px);
+  height: auto;
+  margin: 1.8rem auto 0;
+  opacity: 0.5;
+  transform: rotate(4deg);
+}
+
+/* ==========================================================================
+   7d. COUNTDOWN
+   ========================================================================== */
+.countdown {
+  display: flex;
+  justify-content: center;
+  gap: clamp(0.6rem, 3vw, 1.4rem);
+  flex-wrap: nowrap;
+}
+
+/* Small candle-and-branch accent, sitting in normal flow between the
+   title and the row — simplest way to guarantee it never overlaps either
+   at any viewport width, since it just takes its own quiet beat of
+   vertical space rather than being pinned beside content of unknown width */
+.countdown-motif {
+  position: relative;
+  width: clamp(34px, 7vw, 46px);
+  margin: 0 auto 0.9rem;
+}
+.countdown-motif-branch {
+  width: 100%;
+  height: auto;
+  opacity: 0.55;
+  transform: rotate(-18deg);
+}
+.countdown-motif-candle {
+  position: absolute;
+  bottom: -6%;
+  inset-inline-end: -14%;
+  width: 42%;
+  height: auto;
+  opacity: 0.85;
+}
+.countdown-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* Sized between the old 58-84px range and .scratch-card's 88-122px —
+     noticeably bigger, but still a clear step down from the scratch
+     cards. The floor (62px) and the row's gap floor below were both
+     picked by checking the tightest realistic phone width (320px) by
+     hand: 4 boxes at their floor width + 3 gaps at their floor still
+     leaves ~11px of slack there, so the row holds one line on its own
+     sizing rather than depending on flex-shrink to bail it out if it
+     ever got tight. min-width: 0 overrides flexbox's default min-width:
+     auto (which would otherwise refuse to shrink a box below its
+     content size) as a second line of defense. */
+  min-width: 0;
+  /* FIX (this pass): max was 100px — on desktop-width viewports, 19vw
+     blows past that almost immediately, so the box (and its digits,
+     below) just sat at that same fairly modest ceiling on every screen
+     from tablet width upward, reading as too small on a real desktop
+     monitor. Raised to 140px so it actually keeps growing into large
+     screens instead of capping out early; the mobile-facing min (62px)
+     and vw curve are untouched. */
+  width: clamp(62px, 19vw, 140px);
+  aspect-ratio: 1 / 1;
+  background: var(--bg-section);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow:
+    0 8px 18px -10px rgba(87, 76, 51, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+/* Countdown digits use Western numerals on purpose — a live-ticking timer
+   needs to be scanned at a glance, where Western digits read fastest even
+   for Arabic-speaking guests; the rest of the site's display numerals stay
+   Arabic-Indic. */
+.countdown-number {
+  font-family: var(--font-ar-display);
+  /* FIX (this pass): max was 2rem — same issue as .countdown-unit's
+     width above (which this needs to scale together with, so the digits
+     keep filling the box rather than looking small inside a now-bigger
+     one). Raised proportionally with the box's new 140px ceiling. */
+  font-size: clamp(1.4rem, 6vw, 2.75rem);
+  font-weight: 700;
+  color: var(--text-accent);
+  font-variant-numeric: tabular-nums;
+}
+.countdown-label {
+  font-family: var(--font-ar-body);
+  /* Scales together with .countdown-number now, same reasoning — was a
+     flat 0.75rem that read as disproportionately tiny under the bigger
+     desktop digits above it. */
+  font-size: clamp(0.75rem, 1.6vw, 0.95rem);
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+}
+
+/* ==========================================================================
+   7e. LOCATION
+   ========================================================================== */
+/* Wider than the site's usual 720px text measure (see .section) — the
+   photo below is meant to breathe and read as a showcase image, not sit
+   pinched inside the standard reading column. Title/subtitle/button stay
+   fine at this width since they're short, self-centering lines, not
+   paragraphs that would otherwise stretch thin. */
+.location-section {
+  max-width: 960px;
+}
+.location-subtitle {
+  font-family: var(--font-ar-body);
+  /* FIX: was a flat 1rem — never scaled up on desktop. */
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: -0.4rem;
+  margin-bottom: 1.8rem;
+}
+
+/* Venue photo: the section's whole visual statement now that the map is
+   gone, so it's sized well past the site's text measure — up to 900px —
+   while staying visibly framed rather than full-bleed.
+
+   The frame is a real focusable link (clicking/tapping the whole photo
+   opens the same Google Maps destination as the button below it — see
+   applyContent() in LeensWeddingInvitation.js), so cursor/focus states
+   below are functional, not decorative.
+
+   The shape (arched top, straight sides, flat bottom — see #venue-arch-
+   path in the SVG symbol library for the actual geometry/formula) is
+   defined ONCE and reused via <use> for two different jobs that must
+   never drift apart:
+     - #venue-arch-clip, a <clipPath>, gives the photo its crisp edge —
+       clip-path always cuts a hard boundary, never a fade, so this alone
+       fixes the old hazy/uneven edge.
+     - .venue-photo-border draws that exact same path a second time, this
+       time visibly, as an unfilled stroke. A stroke naturally traces a
+       path's FULL perimeter in one continuous line regardless of which
+       segments are curved vs straight — unlike the previous attempt
+       (a second clipped, inset "halo" layer), which only worked on the
+       curved top and silently vanished on the straight sides/bottom
+       once combined with overflow:hidden. Both reference the identical
+       <path>, so there is no coordinate list to keep in sync by hand. */
+/* Wraps the frame + its corner botanical accent, so the accent can be
+   positioned relative to the photo without disturbing the frame link's
+   own hit area */
+.venue-photo-wrap {
+  position: relative;
+  width: clamp(260px, 92vw, 900px);
+  /* FIX: 92vw is relative to the raw viewport, not this element's actual
+     parent — it doesn't know about .invitation's border/margin (added
+     this same pass) narrowing the real available width, so on any
+     screen wide enough for the border's inset to matter as a fraction
+     of the viewport, this photo rendered wider than the space inside
+     the border and visibly poked out past it. max-width: 100% caps it
+     to whatever room its parent actually has, overriding the vw value
+     only when it would otherwise overflow. */
+  max-width: 100%;
+  margin: 0 auto;
+}
+.venue-photo-frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  margin: 0 auto;
+  /* Warm, low-opacity, tightly-fitted — a gentle lift off the page, not
+     a wide hazy halo */
+  filter: drop-shadow(0 10px 14px rgba(87, 76, 51, 0.22));
+  cursor: pointer;
+}
+
+/* Small flower/branch accent at the frame's top corner, coordinated with
+   the arch border — sitting just outside the photo's edge so it never
+   overlaps the image itself */
+/* Positioned at ~32% down from the top — where the arch's curved top
+   meets its straight side (see #venue-arch-border-path's ry=64/200 —
+   the frame's own "shoulder" point) — so the sprig reads as tucked right
+   into the frame's own geometry rather than floating above it */
+.location-motif {
+  position: absolute;
+  top: 19%;
+  inset-inline-start: -5%;
+  width: clamp(50px, 9vw, 80px);
+  z-index: 1;
+  pointer-events: none;
+}
+.location-motif-branch {
+  width: 100%;
+  height: auto;
+  opacity: 0.68;
+  transform: rotate(-38deg);
+}
+.location-motif-bloom {
+  position: absolute;
+  top: 2%;
+  inset-inline-end: -10%;
+  width: 34%;
+  height: auto;
+  opacity: 0.9;
+  transform: rotate(4deg);
+}
+.venue-photo-frame:focus-visible {
+  outline: 2px solid var(--color-gold-hairline);
+  outline-offset: 4px;
+}
+.venue-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  clip-path: url(#venue-arch-clip);
+}
+.venue-photo-border {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.venue-photo-border use {
+  fill: none;
+  stroke: var(--color-sage-dark);
+  stroke-width: 2px;
+}
+
+/* Small note directly under the photo flagging that it's clickable too —
+   always visible (not a hover reveal, which is invisible-until-touched
+   on mobile and was illegible over the photo itself) and sitting on the
+   plain page background, so legibility is never a question. */
+.venue-photo-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  margin-top: 1rem;
+  font-family: var(--font-ar-body);
+  /* FIX: was a flat 0.85rem — never scaled up on desktop. */
+  font-size: clamp(0.85rem, 1.3vw, 1.05rem);
+  color: var(--text-accent);
+}
+.venue-photo-hint-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--color-gold-hairline);
+  flex-shrink: 0;
+}
+
+/* Small caption beneath the photo — same quiet "label" treatment as
+   .countdown-label/.scratch-label elsewhere, giving a little geographic
+   context (city/country) the venue name + subtitle above don't cover. */
+.venue-photo-caption {
+  font-family: var(--font-ar-body);
+  /* FIX: was a flat 0.85rem — never scaled up on desktop. */
+  font-size: clamp(0.85rem, 1.3vw, 1.05rem);
+  letter-spacing: 0.02em;
+  color: var(--color-gold-hairline);
+  text-align: center;
+  margin-top: 0.4rem;
+}
+
+.directions-btn {
+  display: block;
+  width: fit-content;
+  margin: 1.6rem auto 0;
+  /* FIX: padding/font-size were flat — never scaled up on desktop, same
+     issue fixed on .rsvp-btn earlier this pass. */
+  padding: clamp(0.85rem, 1.2vw, 1.05rem) clamp(2.4rem, 3.5vw, 3rem);
+  font-family: var(--font-ar-body);
+  font-weight: 600;
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  color: var(--color-ivory);
+  background: linear-gradient(135deg, var(--color-sage), var(--color-sage-dark));
+  border-radius: 999px;
+  box-shadow: 0 8px 20px -8px rgba(87, 99, 63, 0.5);
+  transition: transform var(--transition-med), box-shadow var(--transition-med);
+}
+.directions-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -8px rgba(87, 99, 63, 0.55); }
+.directions-btn:active { transform: translateY(0); }
+
+/* ==========================================================================
+   7e-2. RSVP
+   Question -> Yes/No -> (No: brief message, nothing saved) / (Yes: name
+   field + Confirm -> Firestore, see initRSVP() in the JS). Styled to sit
+   quietly under the directions button as a natural continuation of the
+   location section, not a separate boxed "form" component.
+   ========================================================================== */
+.rsvp-block {
+  margin-top: 3rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+.rsvp-question {
+  font-family: var(--font-ar-body);
+  font-weight: 600;
+  /* FIX (this pass): was a flat 1.1rem — never scaled up at all on
+     desktop-width screens, same issue found across several other text
+     elements this pass. Floor unchanged, ceiling added. */
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  color: var(--text-primary);
+  margin-bottom: 1.2rem;
+}
+.rsvp-choice {
+  display: flex;
+  justify-content: center;
+  gap: 0.9rem;
+  margin-bottom: 1.6rem;
+}
+/* Real bug this fixes: an author stylesheet's `display` always wins over
+   the browser's built-in `[hidden] { display: none }` rule (author rules
+   beat the user-agent stylesheet regardless of selector specificity) —
+   so .rsvp-choice/.rsvp-form's own `display: flex` was silently
+   cancelling the `hidden` attribute JS sets on them, and BOTH the yes/no
+   buttons and the name field showed at once from the very first paint,
+   with no ability to actually hide either. */
+.rsvp-choice[hidden],
+.rsvp-form[hidden] {
+  display: none;
+}
+/* Yes/No now stay visible and swappable through the whole flow (see
+   setChoice() in the JS) rather than one-way "pick and vanish" buttons —
+   so styling is a real two-state toggle: whichever was chosen fills in,
+   the other stays an outline, and either can be re-clicked to change the
+   guest's mind at any point before the final Confirm submits. */
+.rsvp-btn {
+  /* FIX (this pass): min-width/padding/font-size were all flat values —
+     never scaled up on desktop, same issue as .rsvp-question above. */
+  min-width: clamp(100px, 9vw, 128px);
+  padding: clamp(0.7rem, 1.2vw, 0.9rem) clamp(1.8rem, 3vw, 2.3rem);
+  font-family: var(--font-ar-body);
+  font-weight: 600;
+  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+  border-radius: 999px;
+  border: 1px solid var(--color-sage);
+  color: var(--text-accent);
+  background: transparent;
+  transition: transform var(--transition-med), background-color var(--transition-med), color var(--transition-med);
+}
+.rsvp-btn:hover { background: color-mix(in srgb, var(--color-sage) 15%, transparent); }
+.rsvp-btn:active { transform: scale(0.96); }
+.rsvp-btn.is-active {
+  color: var(--color-ivory);
+  background: linear-gradient(135deg, var(--color-sage), var(--color-sage-dark));
+  border-color: transparent;
+}
+.rsvp-btn.is-active:hover { filter: brightness(1.08); background: linear-gradient(135deg, var(--color-sage), var(--color-sage-dark)); }
+
+/* Name field + Confirm: side by side once there's room, stacked on
+   narrow phones (per spec) */
+.rsvp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-width: 380px;
+  margin: 0 auto;
+  /* Toggling [hidden] off makes this a fresh box each time (browsers
+     restart CSS animations across a display:none <-> visible switch), so
+     the name field/Confirm eases in rather than snapping into place the
+     instant "Yes" is pressed. */
+  animation: rsvp-reveal 450ms ease-out;
+}
+@keyframes rsvp-reveal {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (min-width: 480px) {
+  .rsvp-form {
+    flex-direction: row;
+  }
+}
+.rsvp-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.75rem 1.1rem;
+  font-family: var(--font-ar-body);
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  background: var(--bg-section);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  transition: border-color var(--transition-med);
+}
+.rsvp-input::placeholder { color: var(--text-secondary); opacity: 0.8; }
+.rsvp-input:focus { outline: none; border-color: var(--text-accent); }
+.rsvp-input--error { border-color: #b5533f; }
+.rsvp-confirm-btn {
+  /* FIX: padding/font-size were flat — never scaled up on desktop. */
+  padding: clamp(0.75rem, 1.1vw, 0.95rem) clamp(1.6rem, 2.4vw, 2rem);
+  font-family: var(--font-ar-body);
+  font-weight: 600;
+  font-size: clamp(0.95rem, 1.4vw, 1.15rem);
+  color: var(--color-ivory);
+  background: linear-gradient(135deg, var(--color-sage), var(--color-sage-dark));
+  border-radius: 999px;
+  box-shadow: 0 8px 18px -8px rgba(87, 99, 63, 0.5);
+  transition: transform var(--transition-med);
+  white-space: nowrap;
+}
+.rsvp-confirm-btn:hover { transform: translateY(-1px); }
+.rsvp-confirm-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+.rsvp-message {
+  font-family: var(--font-ar-body);
+  font-weight: 500;
+  /* FIX: was a flat 1.02rem — never scaled up on desktop. */
+  font-size: clamp(1.02rem, 1.5vw, 1.25rem);
+  color: var(--text-accent);
+  animation: rsvp-reveal 450ms ease-out;
+}
+
+
+
+/* Lightbox */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(29, 26, 19, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 400ms ease, visibility 400ms ease;
+}
+.lightbox.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+.lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 85vh;
+  transform: scale(0.95);
+  opacity: 0;
+  transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1), opacity 400ms ease;
+  transition-delay: 100ms;
+}
+.lightbox.is-visible .lightbox-content {
+  transform: scale(1);
+  opacity: 1;
+}
+.lightbox-content img {
+  display: block;
+  max-width: 100%;
+  max-height: 85vh; /* match parent max-height */
+  border-radius: 8px;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.4);
+}
+.lightbox-close,
+.lightbox-nav {
+  position: absolute;
+  z-index: 10;
+  color: white;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 200ms ease;
+}
+.lightbox-close:hover,
+.lightbox-nav:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+.lightbox-close {
+  top: 1.5rem;
+  right: 1.5rem;
+}
+.lightbox-nav {
+  top: 50%;
+  transform: translateY(-50%);
+}
+.lightbox-prev {
+  left: 1.5rem;
+}
+.lightbox-next {
+  right: 1.5rem;
+}
+.lightbox-close svg,
+.lightbox-nav svg {
+  width: 24px;
+  height: 24px;
+}
+.lightbox-nav[hidden] {
+  display: none;
+}
+body.lightbox-open {
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   7g. ADULTS-ONLY NOTE
+   ========================================================================== */
+.adults-section {
+  text-align: center;
+  /* Extra bottom padding (past the shared .section 3.5rem) so this note
+     and the thank-you note below read as two distinct thoughts rather
+     than one dense block. */
+  padding-bottom: 5rem;
+}
+.motif-olive {
+  width: min(160px, 50%);
+  margin: 0 auto 1rem;
+  color: var(--color-sage);
+}
+.adults-note {
+  font-family: var(--font-ar-body);
+  /* FIX: was a flat 1.05rem — never scaled up on desktop, same issue as
+     .closing-message right after it in the page (fixed earlier this
+     pass), which is why the two read as mismatched sizes on a wide
+     screen despite looking like they belong to the same visual rhythm. */
+  font-size: clamp(1.05rem, 1.6vw, 1.3rem);
+  line-height: 1.9;
+  color: var(--text-secondary);
+  max-width: 34ch;
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   7h. CLOSING / THANK YOU
+   ========================================================================== */
+.closing-section {
+  text-align: center;
+  padding-bottom: 4rem;
+}
+
+/* Closing bookend: fuller than the mid-page accents (branch + two blooms
+   + a lit candle), echoing the envelope's opening richness as the site's
+   final visual note before the monogram. Sits above the first divider,
+   in flow (not absolute) so it takes its own quiet beat at the top of
+   the section rather than floating over the message text below it. */
+.closing-motif {
+  position: relative;
+  width: min(140px, 40%);
+  margin: 0 auto 1.6rem;
+}
+.closing-motif-branch {
+  width: 100%;
+  height: auto;
+  opacity: 0.8;
+}
+.closing-motif-bloom {
+  position: absolute;
+  width: 20%;
+  height: auto;
+}
+.closing-motif-bloom--1 { top: 8%; inset-inline-start: 32%; transform: rotate(-6deg); }
+.closing-motif-bloom--2 { top: 40%; inset-inline-end: 14%; transform: rotate(10deg) scale(0.85); }
+.closing-motif-candle {
+  position: absolute;
+  bottom: -4%;
+  inset-inline-start: 6%;
+  width: 22%;
+  height: auto;
+}
+/* The emotional high point of the closing, so it's sized/weighted a step
+   past the adults-only note above for a clear hierarchy between the two */
+.closing-message {
+  font-family: var(--font-ar-body);
+  font-weight: 500;
+  /* FIX (this pass): was a flat 1.2rem — never scaled up on desktop.
+     max-width is in ch (relative to the element's own font-size), so it
+     grows proportionally with the new clamp automatically — no separate
+     change needed there. */
+  font-size: clamp(1.2rem, 1.8vw, 1.45rem);
+  line-height: 1.9;
+  color: var(--text-primary);
+  max-width: 34ch;
+  margin: 0 auto 2rem;
+}
+/* Same script face as the couple's hero names (--font-ar-display) — a
+   personal, handwritten sign-off rather than another line of body text */
+.closing-signature {
+  font-family: var(--font-ar-display);
+  font-weight: 700;
+  /* FIX (this pass): was a flat 1.7rem — never scaled up on desktop. */
+  font-size: clamp(1.7rem, 3vw, 2.2rem);
+  color: var(--text-accent);
+  margin-bottom: 2.5rem;
+}
+
+/* ==========================================================================
+   7i. SITE CONTROLS — theme + language + music toggles
+   Fixed top-corner row, hidden/inert until the envelope has opened (see
+   the sibling-combinator visibility rule below), then reachable at any
+   scroll position. dir="ltr" is set on the container in the HTML — all
+   three widgets use physical left/right internally rather than logical
+   properties, matching that fixed direction.
+   FIX #5 (this pass): .music-toggle used to be its own separately fixed-
+   positioned/z-indexed element sitting ABOVE this row (top:1rem, forcing
+   .site-controls down to top:4.2rem to make room). It's now a plain
+   third child of this same flex row instead — top restored to 1rem. */
+.site-controls {
+  position: fixed;
+  /* MOVED (this pass): was top/right: 1rem, which sat ABOVE/OUTSIDE
+     .invitation's own border (.invitation's frame margin + border is
+     clamp(10px,3vw,22px) + 4px) — same expression here plus a bit of
+     breathing room so the toggle row reads as sitting inside the frame
+     at any viewport size, not floating above it. */
+  top: calc(clamp(10px, 3vw, 22px) + 4px + 0.75rem);
+  right: calc(clamp(10px, 3vw, 22px) + 4px + 0.75rem);
+  z-index: 60;
+  display: flex;
+  /* The actual cause of the "circle behind the toggle" bug: flex
+     containers default align-items to stretch, and #theme-toggle is
+     visibly shorter than its sibling #lang-toggle (whose own padding +
+     text line-height make it taller) — so the theme toggle button was
+     being stretched to match #lang-toggle's height, well past its own
+     26px track, and its box-shadow was rendering from that stretched,
+     invisible outer box: a soft halo bleeding out from behind the
+     visible pill. Sizing each toggle to its own content instead of the
+     tallest sibling fixes it directly. */
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 600ms ease;
+}
+/* #invitation is a SIBLING of .site-controls (not an ancestor — see the
+   HTML), so a general sibling combinator is what reveals this once the
+   envelope has actually opened, rather than a JS-driven class. */
+#invitation.is-visible ~ .site-controls {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Theme toggle: an iOS-style sliding switch, track color swaps
+   light/dark, thumb carries a single leaf icon whose color always
+   contrasts its own track (dark leaf on the light track, light leaf on
+   the dark track) rather than needing two separate icons. */
+/* display:flex here sizes the button to its one child rather than
+   picking up any of the button-as-form-control sizing quirks a plain
+   inline-block default can carry. It turned out NOT to be the actual
+   cause of the stray halo behind this toggle, though (see
+   .site-controls' align-items comment for the real explanation) —
+   harmless to keep regardless, since sizing to content is the right
+   behavior either way. */
+.theme-toggle {
+  display: flex;
+  padding: 0;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px -4px rgba(61, 54, 38, 0.35);
+}
+.theme-toggle-track {
+  display: flex;
+  align-items: center;
+  width: 46px;
+  height: 26px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--color-beige-deep);
+  border: 1px solid var(--color-gold-muted);
+  transition: background-color var(--transition-med);
+}
+[data-theme="dark"] .theme-toggle-track {
+  background: var(--color-olive-deep);
+  border-color: var(--color-gold-hairline);
+}
+.theme-toggle-thumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-ivory);
+  color: var(--color-sage-dark);
+  transform: translateX(0);
+  transition: transform var(--transition-med), background-color var(--transition-med), color var(--transition-med);
+}
+/* Sun and moon sit stacked in the same spot, swapped by opacity rather
+   than swapping which is in the DOM — a plain crossfade instead of a
+   layout change, and both stay renderable for the transition either
+   direction. */
+.theme-toggle-icon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 3px;
+  transition: opacity var(--transition-med);
+}
+.theme-toggle-icon--sun { opacity: 1; }
+.theme-toggle-icon--moon { opacity: 0; }
+[data-theme="dark"] .theme-toggle-icon--sun { opacity: 0; }
+[data-theme="dark"] .theme-toggle-icon--moon { opacity: 1; }
+[data-theme="dark"] .theme-toggle-thumb {
+  transform: translateX(20px);
+  background: var(--color-olive-light);
+  color: var(--color-ivory);
+}
+
+/* Language toggle: a two-segment pill, active segment highlighted —
+   clicking either segment switches straight to that language. */
+.lang-toggle {
+  display: flex;
+  align-items: stretch;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--color-beige-deep);
+  border: 1px solid var(--color-gold-muted);
+  box-shadow: 0 4px 12px -4px rgba(61, 54, 38, 0.35);
+  transition: background-color var(--transition-med), border-color var(--transition-med);
+}
+[data-theme="dark"] .lang-toggle {
+  background: var(--color-olive-deep);
+  border-color: var(--color-gold-hairline);
+}
+.lang-toggle-option {
+  padding: 0.3rem 0.65rem;
+  font-family: var(--font-ar-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-radius: 999px;
+  transition: background-color var(--transition-med), color var(--transition-med);
+}
+.lang-toggle-option.is-active {
+  color: var(--color-ivory);
+  background: linear-gradient(135deg, var(--color-sage), var(--color-sage-dark));
+}
+
+/* FIX #5 (this pass): music toggle restyled to match .theme-toggle-track
+   exactly — same background/border/box-shadow/transition tokens, same
+   dark-theme override — just a plain circle (one icon, no sliding thumb)
+   sized close to that track's own 26px height rather than the previous
+   bespoke translucent-olive-with-backdrop-blur look. Sits as a normal
+   third child of .site-controls' flex row now (see that rule above),
+   not a separately fixed-positioned element. */
+.music-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 999px;
+  background: var(--color-beige-deep);
+  border: 1px solid var(--color-gold-muted);
+  box-shadow: 0 4px 12px -4px rgba(61, 54, 38, 0.35);
+  color: var(--color-sage-dark);
+  transition: background-color var(--transition-med), transform var(--transition-med);
+}
+[data-theme="dark"] .music-toggle {
+  background: var(--color-olive-deep);
+  border-color: var(--color-gold-hairline);
+  color: var(--text-primary);
+}
+.music-toggle:active {
+  transform: scale(0.94);
+}
+.music-toggle:focus-visible {
+  outline: 2px solid var(--color-gold-hairline);
+  outline-offset: 3px;
+}
+.music-toggle-icon {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  transition: opacity var(--transition-med);
+}
+.music-toggle-icon--on { opacity: 1; }
+.music-toggle-icon--off { opacity: 0; }
+.music-toggle.is-muted .music-toggle-icon--on { opacity: 0; }
+.music-toggle.is-muted .music-toggle-icon--off { opacity: 1; }
+
+/* ---------- 8. SCROLL REVEAL ---------- */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(28px) scale(0.985);
+  transition: opacity var(--transition-reveal), transform var(--transition-reveal);
+}
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Editorial cascade: within the hero and the opening verse/family page,
+   each direct child eases in a beat after the one before it, layered on
+   top of the section-level reveal above (both trigger off the same
+   .is-visible class) so the page feels composed rather than a single
+   block appearing all at once. Kept to these two sections deliberately —
+   applied everywhere it would read as noisy rather than considered. */
+.hero-frame > *,
+.verse-section > *:not(.corner-motif) {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity var(--transition-reveal), transform var(--transition-reveal);
+}
+.hero-section.is-visible .hero-frame > *,
+.verse-section.is-visible > *:not(.corner-motif) {
+  opacity: 1;
+  transform: translateY(0);
+}
+.hero-frame > *:nth-child(1), .verse-section > *:nth-child(1) { transition-delay: 0ms; }
+.hero-frame > *:nth-child(2), .verse-section > *:nth-child(2) { transition-delay: 90ms; }
+.hero-frame > *:nth-child(3), .verse-section > *:nth-child(3) { transition-delay: 180ms; }
+.hero-frame > *:nth-child(4), .verse-section > *:nth-child(4) { transition-delay: 270ms; }
+.hero-frame > *:nth-child(5), .verse-section > *:nth-child(5) { transition-delay: 360ms; }
+.verse-section > *:nth-child(6) { transition-delay: 450ms; }
+.verse-section > *:nth-child(7) { transition-delay: 540ms; }
+.verse-section > *:nth-child(8) { transition-delay: 630ms; }
+
+/* ---------- 9. RESPONSIVE ---------- */
+@media (min-width: 640px) {
+  .hero-frame { padding: 4rem 3rem; }
+}
+
+/* ---------- 10. REDUCED MOTION ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  /* FIX #1: .monogram-medallion removed from this selector list along
+     with the element itself. */
+  [data-reveal] {
+    transition-duration: 1ms !important;
+  }
+
+  /* Reduced motion skips the 3D flap fold, seal lift and content rise
+     entirely (see initEnvelope() in LeensWeddingInvitation.js, which
+     branches to a much simpler path) — the envelope screen just does a
+     plain 300ms fade, with the invitation already at its resting state
+     underneath. */
+  #envelope-screen.hidden {
+    transition-duration: 300ms !important;
+  }
+
+  .envelope-hint,
+  .candle-flame,
+  .leaf-sway {
+    animation: none !important;
+  }
+
+  .envelope-script.is-unlocking,
+  .envelope-hint.is-unlocking {
+    transition: none;
+    opacity: 0;
+  }
+
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* The hero/verse staggered-child cascade, plus the venue illustration's
+     scroll parallax: initScrollAtmosphere() in the JS already skips
+     itself entirely under reduced motion (never sets --parallax-y past
+     its 0 default), so .venue-illustration needs no override here —
+     only the child-cascade transition needs explicitly killing. */
+  .hero-frame > *,
+  .verse-section > * {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    transition-delay: 0ms;
+  }
+}
+/* Physical Foil Light Reflection */
+@keyframes foil-shine {
+  to {
+    background-position: 200% center;
+  }
+}
