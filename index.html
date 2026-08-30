@@ -101,27 +101,247 @@
     <svg class="botanical-branch" viewBox="0 0 200 100"><use href="#motif-olive-branch" width="200" height="100"></use></svg>
     <!-- ENRICHED (this pass, visual only): one extra shorter sprig,
          reusing the existing eucalyptus-sprig motif for a varied
-         length/direction alongside the main branch above. -->
-    <svg class="botanical-sprig" viewBox="0 0 140 140"><use href="#motif-eucalyptus-sprig" width="140" height="140"></use></svg>
-    <svg class="botanical-candle botanical-candle--tall" viewBox="0 0 30 90" style="--flicker-delay: -0.6s"><use href="#motif-candle" width="30" height="90"></use></svg>
-    <svg class="botanical-candle botanical-candle--short" viewBox="0 0 30 90" style="--flicker-delay: -1.8s"><use href="#motif-candle" width="30" height="90"></use></svg>
+         length/direction alongside the main branch above.
+         --sway-delay (idle-life pass): staggers this instance's internal
+         leaf-sway (see #motif-eucalyptus-sprig) independently from the
+         right corner's sprig below and from every other sitewide reuse
+         of this same symbol, which all keep the default -2.1s. -->
+    <svg class="botanical-sprig" viewBox="0 0 140 140" style="--sway-delay: -0.8s"><use href="#motif-eucalyptus-sprig" width="140" height="140"></use></svg>
+    <!-- Candle glow pass: these 3 corner candles are now INLINED (the
+         actual path/rect/line shapes, not <use href="#motif-candle">)
+         instead of referencing the shared symbol — GSAP (see
+         initCandleGlow() in the JS) needs to reach each .candle-flame
+         directly via document.querySelectorAll, and elements only
+         reachable through an SVG <use>'s cloned shadow content are NOT
+         selectable from JS that way (confirmed by direct testing: 0 of
+         these .candle-flame nodes are reachable, 1 was hit for other
+         reasons); only CSS can style into that shadow content, not
+         document.querySelectorAll(). The 2 candles elsewhere on the page
+         (countdown/closing sections) still use the shared symbol
+         untouched, still animated by the original CSS
+         #motif-candle .candle-flame flicker — nothing about them
+         changed. Each candle is wrapped in a .candle-wrap (carries the
+         position/height this used to live on .botanical-candle itself)
+         alongside a new .candle-glow-halo sibling — a soft, much-larger
+         warm blur meant to bleed into the fabric around it via
+         mix-blend-mode:screen (see the CSS), not confined to the
+         candle's own narrow SVG box the way the small in-icon
+         #flame-glow circle already was. -->
+    <div class="candle-wrap candle-wrap--tall">
+      <span class="candle-glow-halo"></span>
+      <svg class="botanical-candle" viewBox="0 0 30 90" aria-hidden="true">
+        <circle cx="15" cy="13" r="15" fill="url(#flame-glow)" />
+        <line class="candle-wick" x1="15" y1="26" x2="15" y2="17" />
+        <!-- Static layout transform (position/scale only, never touched
+             by GSAP) wrapping the actual animated flame group — GSAP
+             writes its own transform onto .candle-flame directly, so
+             that group can't ALSO carry this static placement transform
+             without GSAP clobbering it every tick.
+             SIZING FIX (this pass): scale raised 0.42 -> 0.8 so the
+             flame renders at ~30% of the candle's own height (was
+             ~16%, too small at the site's actual rendered width) — the
+             flame SVG's native 20x34 box times 0.8 gives a ~27-unit-tall
+             flame in this candle's shared 90-unit-tall viewBox, 27/90 =
+             30%. translate recomputed so the flame's own base (local
+             10,34) still lands at the same (15,20) point near the wick
+             it always has: 15-10*0.8=7, 20-34*0.8=-7.2 (see
+             .botanical-candle's own overflow:visible in the CSS — the
+             taller flame's tip now pokes above this SVG's nominal y=0
+             top edge, which needs that to not get clipped). -->
+        <g transform="translate(7, -7.2) scale(0.8)">
+          <g class="candle-flame">
+            <path d="M10,0 C4,10 0,16 0,22 C0,29 5,34 10,34 C15,34 20,29 20,22 C20,16 16,10 10,0 Z" fill="url(#flame-outer-gradient)" />
+            <path d="M10,10 C7,15 5,19 5,23 C5,27.5 7,30 10,30 C13,30 15,27.5 15,23 C15,19 13,15 10,10 Z" fill="url(#flame-inner-gradient)" />
+          </g>
+        </g>
+        <rect class="candle-body" x="7" y="26" width="16" height="58" rx="7" />
+        <line class="candle-detail" x1="7" y1="36" x2="23" y2="36" />
+      </svg>
+    </div>
+    <div class="candle-wrap candle-wrap--short">
+      <span class="candle-glow-halo"></span>
+      <svg class="botanical-candle" viewBox="0 0 30 90" aria-hidden="true">
+        <circle cx="15" cy="13" r="15" fill="url(#flame-glow)" />
+        <line class="candle-wick" x1="15" y1="26" x2="15" y2="17" />
+        <!-- Static layout transform (position/scale only, never touched
+             by GSAP) wrapping the actual animated flame group — GSAP
+             writes its own transform onto .candle-flame directly, so
+             that group can't ALSO carry this static placement transform
+             without GSAP clobbering it every tick.
+             SIZING FIX (this pass): scale raised 0.42 -> 0.8 so the
+             flame renders at ~30% of the candle's own height (was
+             ~16%, too small at the site's actual rendered width) — the
+             flame SVG's native 20x34 box times 0.8 gives a ~27-unit-tall
+             flame in this candle's shared 90-unit-tall viewBox, 27/90 =
+             30%. translate recomputed so the flame's own base (local
+             10,34) still lands at the same (15,20) point near the wick
+             it always has: 15-10*0.8=7, 20-34*0.8=-7.2 (see
+             .botanical-candle's own overflow:visible in the CSS — the
+             taller flame's tip now pokes above this SVG's nominal y=0
+             top edge, which needs that to not get clipped). -->
+        <g transform="translate(7, -7.2) scale(0.8)">
+          <g class="candle-flame">
+            <path d="M10,0 C4,10 0,16 0,22 C0,29 5,34 10,34 C15,34 20,29 20,22 C20,16 16,10 10,0 Z" fill="url(#flame-outer-gradient)" />
+            <path d="M10,10 C7,15 5,19 5,23 C5,27.5 7,30 10,30 C13,30 15,27.5 15,23 C15,19 13,15 10,10 Z" fill="url(#flame-inner-gradient)" />
+          </g>
+        </g>
+        <rect class="candle-body" x="7" y="26" width="16" height="58" rx="7" />
+        <line class="candle-detail" x1="7" y1="36" x2="23" y2="36" />
+      </svg>
+    </div>
     <!-- ENRICHED: one extra candle, same flicker/glow technique as the
-         other two (just its own --flicker-delay), varied height. -->
-    <svg class="botanical-candle botanical-candle--mid" viewBox="0 0 30 90" style="--flicker-delay: -1.1s"><use href="#motif-candle" width="30" height="90"></use></svg>
-    <svg class="botanical-bloom botanical-bloom--1" viewBox="0 0 40 40"><use href="#motif-bloom" width="40" height="40"></use></svg>
-    <svg class="botanical-bloom botanical-bloom--2" viewBox="0 0 40 40"><use href="#motif-bloom" width="40" height="40"></use></svg>
+         other two, varied height. -->
+    <div class="candle-wrap candle-wrap--mid">
+      <span class="candle-glow-halo"></span>
+      <svg class="botanical-candle" viewBox="0 0 30 90" aria-hidden="true">
+        <circle cx="15" cy="13" r="15" fill="url(#flame-glow)" />
+        <line class="candle-wick" x1="15" y1="26" x2="15" y2="17" />
+        <!-- Static layout transform (position/scale only, never touched
+             by GSAP) wrapping the actual animated flame group — GSAP
+             writes its own transform onto .candle-flame directly, so
+             that group can't ALSO carry this static placement transform
+             without GSAP clobbering it every tick.
+             SIZING FIX (this pass): scale raised 0.42 -> 0.8 so the
+             flame renders at ~30% of the candle's own height (was
+             ~16%, too small at the site's actual rendered width) — the
+             flame SVG's native 20x34 box times 0.8 gives a ~27-unit-tall
+             flame in this candle's shared 90-unit-tall viewBox, 27/90 =
+             30%. translate recomputed so the flame's own base (local
+             10,34) still lands at the same (15,20) point near the wick
+             it always has: 15-10*0.8=7, 20-34*0.8=-7.2 (see
+             .botanical-candle's own overflow:visible in the CSS — the
+             taller flame's tip now pokes above this SVG's nominal y=0
+             top edge, which needs that to not get clipped). -->
+        <g transform="translate(7, -7.2) scale(0.8)">
+          <g class="candle-flame">
+            <path d="M10,0 C4,10 0,16 0,22 C0,29 5,34 10,34 C15,34 20,29 20,22 C20,16 16,10 10,0 Z" fill="url(#flame-outer-gradient)" />
+            <path d="M10,10 C7,15 5,19 5,23 C5,27.5 7,30 10,30 C13,30 15,27.5 15,23 C15,19 13,15 10,10 Z" fill="url(#flame-inner-gradient)" />
+          </g>
+        </g>
+        <rect class="candle-body" x="7" y="26" width="16" height="58" rx="7" />
+        <line class="candle-detail" x1="7" y1="36" x2="23" y2="36" />
+      </svg>
+    </div>
+    <!-- leaf-sway (idle-life pass): reuses the exact same class/keyframe
+         the eucalyptus sprig's own leaves already use elsewhere on this
+         page — same restrained ±0-3deg rotate, same 5.5s ease-in-out
+         loop — applied here directly to the whole bloom instance (safe:
+         nothing else inside #motif-bloom already animates, so there's no
+         double-transform to conflict with), each on its own staggered
+         delay. -->
+    <svg class="botanical-bloom botanical-bloom--1 leaf-sway" viewBox="0 0 40 40" style="animation-delay: -1.4s"><use href="#motif-bloom" width="40" height="40"></use></svg>
+    <svg class="botanical-bloom botanical-bloom--2 leaf-sway" viewBox="0 0 40 40" style="animation-delay: -3.6s"><use href="#motif-bloom" width="40" height="40"></use></svg>
     <!-- ENRICHED: one extra bloom, asymmetrically placed. -->
-    <svg class="botanical-bloom botanical-bloom--3" viewBox="0 0 40 40"><use href="#motif-bloom" width="40" height="40"></use></svg>
+    <svg class="botanical-bloom botanical-bloom--3 leaf-sway" viewBox="0 0 40 40" style="animation-delay: -0.2s"><use href="#motif-bloom" width="40" height="40"></use></svg>
+    <!-- Ambient light motes (idle-life pass): see .ambient-mote in the
+         CSS — small, few, faint on purpose. Positioned near the three
+         candle flames above. -->
+    <span class="ambient-mote" style="left: 56%; bottom: 24%; --mote-delay: -0.5s; --mote-duration: 6.4s"></span>
+    <span class="ambient-mote" style="left: 71%; bottom: 16%; --mote-delay: -3.1s; --mote-duration: 7.8s"></span>
+    <span class="ambient-mote" style="left: 84%; bottom: 20%; --mote-delay: -5.6s; --mote-duration: 6.9s"></span>
   </div>
   <div class="envelope-botanicals envelope-botanicals--right" aria-hidden="true">
     <svg class="botanical-branch" viewBox="0 0 200 100"><use href="#motif-olive-branch" width="200" height="100"></use></svg>
-    <svg class="botanical-sprig" viewBox="0 0 140 140"><use href="#motif-eucalyptus-sprig" width="140" height="140"></use></svg>
-    <svg class="botanical-candle botanical-candle--short" viewBox="0 0 30 90" style="--flicker-delay: -1.2s"><use href="#motif-candle" width="30" height="90"></use></svg>
-    <svg class="botanical-candle botanical-candle--tall" viewBox="0 0 30 90" style="--flicker-delay: -2.1s"><use href="#motif-candle" width="30" height="90"></use></svg>
-    <svg class="botanical-candle botanical-candle--mid" viewBox="0 0 30 90" style="--flicker-delay: -0.4s"><use href="#motif-candle" width="30" height="90"></use></svg>
-    <svg class="botanical-bloom botanical-bloom--1" viewBox="0 0 40 40"><use href="#motif-bloom" width="40" height="40"></use></svg>
-    <svg class="botanical-bloom botanical-bloom--2" viewBox="0 0 40 40"><use href="#motif-bloom" width="40" height="40"></use></svg>
-    <svg class="botanical-bloom botanical-bloom--3" viewBox="0 0 40 40"><use href="#motif-bloom" width="40" height="40"></use></svg>
+    <svg class="botanical-sprig" viewBox="0 0 140 140" style="--sway-delay: -4.3s"><use href="#motif-eucalyptus-sprig" width="140" height="140"></use></svg>
+    <div class="candle-wrap candle-wrap--short">
+      <span class="candle-glow-halo"></span>
+      <svg class="botanical-candle" viewBox="0 0 30 90" aria-hidden="true">
+        <circle cx="15" cy="13" r="15" fill="url(#flame-glow)" />
+        <line class="candle-wick" x1="15" y1="26" x2="15" y2="17" />
+        <!-- Static layout transform (position/scale only, never touched
+             by GSAP) wrapping the actual animated flame group — GSAP
+             writes its own transform onto .candle-flame directly, so
+             that group can't ALSO carry this static placement transform
+             without GSAP clobbering it every tick.
+             SIZING FIX (this pass): scale raised 0.42 -> 0.8 so the
+             flame renders at ~30% of the candle's own height (was
+             ~16%, too small at the site's actual rendered width) — the
+             flame SVG's native 20x34 box times 0.8 gives a ~27-unit-tall
+             flame in this candle's shared 90-unit-tall viewBox, 27/90 =
+             30%. translate recomputed so the flame's own base (local
+             10,34) still lands at the same (15,20) point near the wick
+             it always has: 15-10*0.8=7, 20-34*0.8=-7.2 (see
+             .botanical-candle's own overflow:visible in the CSS — the
+             taller flame's tip now pokes above this SVG's nominal y=0
+             top edge, which needs that to not get clipped). -->
+        <g transform="translate(7, -7.2) scale(0.8)">
+          <g class="candle-flame">
+            <path d="M10,0 C4,10 0,16 0,22 C0,29 5,34 10,34 C15,34 20,29 20,22 C20,16 16,10 10,0 Z" fill="url(#flame-outer-gradient)" />
+            <path d="M10,10 C7,15 5,19 5,23 C5,27.5 7,30 10,30 C13,30 15,27.5 15,23 C15,19 13,15 10,10 Z" fill="url(#flame-inner-gradient)" />
+          </g>
+        </g>
+        <rect class="candle-body" x="7" y="26" width="16" height="58" rx="7" />
+        <line class="candle-detail" x1="7" y1="36" x2="23" y2="36" />
+      </svg>
+    </div>
+    <div class="candle-wrap candle-wrap--tall">
+      <span class="candle-glow-halo"></span>
+      <svg class="botanical-candle" viewBox="0 0 30 90" aria-hidden="true">
+        <circle cx="15" cy="13" r="15" fill="url(#flame-glow)" />
+        <line class="candle-wick" x1="15" y1="26" x2="15" y2="17" />
+        <!-- Static layout transform (position/scale only, never touched
+             by GSAP) wrapping the actual animated flame group — GSAP
+             writes its own transform onto .candle-flame directly, so
+             that group can't ALSO carry this static placement transform
+             without GSAP clobbering it every tick.
+             SIZING FIX (this pass): scale raised 0.42 -> 0.8 so the
+             flame renders at ~30% of the candle's own height (was
+             ~16%, too small at the site's actual rendered width) — the
+             flame SVG's native 20x34 box times 0.8 gives a ~27-unit-tall
+             flame in this candle's shared 90-unit-tall viewBox, 27/90 =
+             30%. translate recomputed so the flame's own base (local
+             10,34) still lands at the same (15,20) point near the wick
+             it always has: 15-10*0.8=7, 20-34*0.8=-7.2 (see
+             .botanical-candle's own overflow:visible in the CSS — the
+             taller flame's tip now pokes above this SVG's nominal y=0
+             top edge, which needs that to not get clipped). -->
+        <g transform="translate(7, -7.2) scale(0.8)">
+          <g class="candle-flame">
+            <path d="M10,0 C4,10 0,16 0,22 C0,29 5,34 10,34 C15,34 20,29 20,22 C20,16 16,10 10,0 Z" fill="url(#flame-outer-gradient)" />
+            <path d="M10,10 C7,15 5,19 5,23 C5,27.5 7,30 10,30 C13,30 15,27.5 15,23 C15,19 13,15 10,10 Z" fill="url(#flame-inner-gradient)" />
+          </g>
+        </g>
+        <rect class="candle-body" x="7" y="26" width="16" height="58" rx="7" />
+        <line class="candle-detail" x1="7" y1="36" x2="23" y2="36" />
+      </svg>
+    </div>
+    <div class="candle-wrap candle-wrap--mid">
+      <span class="candle-glow-halo"></span>
+      <svg class="botanical-candle" viewBox="0 0 30 90" aria-hidden="true">
+        <circle cx="15" cy="13" r="15" fill="url(#flame-glow)" />
+        <line class="candle-wick" x1="15" y1="26" x2="15" y2="17" />
+        <!-- Static layout transform (position/scale only, never touched
+             by GSAP) wrapping the actual animated flame group — GSAP
+             writes its own transform onto .candle-flame directly, so
+             that group can't ALSO carry this static placement transform
+             without GSAP clobbering it every tick.
+             SIZING FIX (this pass): scale raised 0.42 -> 0.8 so the
+             flame renders at ~30% of the candle's own height (was
+             ~16%, too small at the site's actual rendered width) — the
+             flame SVG's native 20x34 box times 0.8 gives a ~27-unit-tall
+             flame in this candle's shared 90-unit-tall viewBox, 27/90 =
+             30%. translate recomputed so the flame's own base (local
+             10,34) still lands at the same (15,20) point near the wick
+             it always has: 15-10*0.8=7, 20-34*0.8=-7.2 (see
+             .botanical-candle's own overflow:visible in the CSS — the
+             taller flame's tip now pokes above this SVG's nominal y=0
+             top edge, which needs that to not get clipped). -->
+        <g transform="translate(7, -7.2) scale(0.8)">
+          <g class="candle-flame">
+            <path d="M10,0 C4,10 0,16 0,22 C0,29 5,34 10,34 C15,34 20,29 20,22 C20,16 16,10 10,0 Z" fill="url(#flame-outer-gradient)" />
+            <path d="M10,10 C7,15 5,19 5,23 C5,27.5 7,30 10,30 C13,30 15,27.5 15,23 C15,19 13,15 10,10 Z" fill="url(#flame-inner-gradient)" />
+          </g>
+        </g>
+        <rect class="candle-body" x="7" y="26" width="16" height="58" rx="7" />
+        <line class="candle-detail" x1="7" y1="36" x2="23" y2="36" />
+      </svg>
+    </div>
+    <svg class="botanical-bloom botanical-bloom--1 leaf-sway" viewBox="0 0 40 40" style="animation-delay: -2.8s"><use href="#motif-bloom" width="40" height="40"></use></svg>
+    <svg class="botanical-bloom botanical-bloom--2 leaf-sway" viewBox="0 0 40 40" style="animation-delay: -4.9s"><use href="#motif-bloom" width="40" height="40"></use></svg>
+    <svg class="botanical-bloom botanical-bloom--3 leaf-sway" viewBox="0 0 40 40" style="animation-delay: -1.7s"><use href="#motif-bloom" width="40" height="40"></use></svg>
+    <span class="ambient-mote" style="left: 60%; bottom: 18%; --mote-delay: -2.3s; --mote-duration: 7.2s"></span>
+    <span class="ambient-mote" style="left: 74%; bottom: 26%; --mote-delay: -4.8s; --mote-duration: 6.6s"></span>
+    <span class="ambient-mote" style="left: 88%; bottom: 15%; --mote-delay: -1.1s; --mote-duration: 7.5s"></span>
   </div>
 
   <!-- REMOVED (this pass): the full-width horizontal seam line. With a
@@ -309,6 +529,21 @@
       <path d="M2 28 V10 Q2 3 9 3 H28" fill="none" stroke="#e9dfc0" stroke-width="1" stroke-opacity="0.85" />
       <path d="M9 3 C 13 6 12 10 8 11 C 12 13 12 17 8 19" fill="none" stroke="#c8d0a3" stroke-width="0.8" stroke-opacity="0.8" />
     </svg>
+
+    <!-- Candle glow pass: a very faint, slow-breathing warm glow meant to
+         read as the corner candles' own light catching the seal, not a
+         light source of its own — animated via GSAP (see
+         initCandleGlow()/initSealCandlelightGlow() in the JS), offset in
+         phase from the candle flickers so it never pulses in obvious
+         lockstep with them. Placed LAST — after .envelope-seal and the
+         corner flourishes — for the same reason .envelope-corner-flourish
+         itself has to be: a new element here silently fails to paint at
+         all unless .envelope-seal already exists earlier in the DOM (see
+         that element's own comment). Painting on top of the medallion
+         (rather than strictly behind it) is fine here specifically
+         because it's a soft screen-blended glow with no hard edges, not
+         an opaque shape — it just warms the seal, which is the point. -->
+    <div class="seal-candlelight-glow"></div>
   </div>
 
   <div class="envelope-caption">
@@ -736,6 +971,36 @@
       <stop offset="100%" stop-color="#eec27f" stop-opacity="0" />
     </radialGradient>
 
+    <!-- Candle glow pass: real wax picks up a warm tint nearest the lit
+         end — used by every candle's .candle-body sitewide (the shared
+         #motif-candle symbol AND the corner clusters' own inlined
+         markup below both reference this one gradient), fading back to
+         the original plain ivory/cream further from the flame. -->
+    <linearGradient id="candle-wax-warm" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fff2cf" />
+      <stop offset="25%" stop-color="#fdeecb" />
+      <stop offset="55%" stop-color="#f6ead0" />
+      <stop offset="100%" stop-color="#efe0c2" />
+    </linearGradient>
+
+    <!-- Candle glow pass (2nd revision): the flame itself, two layered
+         paths rather than one flat-color teardrop — an outer amber-to-
+         ember shape plus a smaller inner "hot core" that goes from
+         near-white at the tip to a pale BLUE at its base. That cool-blue
+         base (a real flame's least-combusted, coolest zone) is what
+         reads as an actual flame rather than a generic orange teardrop
+         — shared by every corner-cluster candle below. -->
+    <linearGradient id="flame-outer-gradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff3b0" />
+      <stop offset="35%" stop-color="#ffb347" />
+      <stop offset="100%" stop-color="#e8622a" />
+    </linearGradient>
+    <linearGradient id="flame-inner-gradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="45%" stop-color="#fff6d0" />
+      <stop offset="100%" stop-color="#bcdcf5" />
+    </linearGradient>
+
     <!-- Reference-port pass: fills/filter for the vine centerpiece below,
          copied byte-for-byte from envelope-concept-demo.html's <defs>
          (id="leafGrad"/"petalWhite"/"petalWhiteInner"/"liftShadow" there
@@ -768,7 +1033,15 @@
     <symbol id="motif-eucalyptus-sprig" viewBox="0 0 140 140">
       <path class="branch-stem" d="M132 8 C 112 20, 98 36, 88 56 C 78 76, 66 92, 46 102 C 32 110, 18 120, 8 132" fill="none" />
       <ellipse class="branch-leaf" cx="118" cy="16" rx="7" ry="4.3" transform="rotate(-40 118 16)" />
-      <g class="leaf-sway" style="animation-delay: -2.1s;">
+      <!-- animation-delay reads a --sway-delay custom property (falling
+           back to the original -2.1s) so specific instances of this
+           reused symbol — e.g. the two envelope corner sprigs, see their
+           own <svg> wrapper's inline style — can be staggered out of
+           phase from each other and from every other sitewide reuse of
+           this same symbol, without changing anything for those other
+           reuses (they simply never set --sway-delay, so they keep
+           today's exact -2.1s behavior). -->
+      <g class="leaf-sway" style="animation-delay: var(--sway-delay, -2.1s);">
         <ellipse class="branch-leaf" cx="100" cy="32" rx="7.6" ry="4.7" transform="rotate(-62 100 32)" />
       </g>
       <ellipse class="branch-leaf" cx="86" cy="54" rx="7.2" ry="4.4" transform="rotate(-85 86 54)" />
@@ -1221,6 +1494,17 @@
 <canvas id="petal-canvas" aria-hidden="true"></canvas>
 
 <script type="module" src="firebase-config.js"></script>
+<!-- GSAP (idle-life pass): drives the candle flicker + candle glow +
+     seal candlelight below (see initCandleGlow() in the JS) — used
+     instead of hand-written CSS @keyframes because randomized per-candle
+     staggering/irregularity is far cleaner to orchestrate with it, and
+     because it animates via direct style writes each tick (like the
+     falling-petal canvas loop already does) rather than through the CSS
+     animation engine, which sidesteps a rendering quirk this session
+     already hit once elsewhere on this same page with CSS @keyframes
+     (see #ribbon-bow's removal history). Loaded before the main script
+     so `gsap` is already defined when it runs. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="LeensWeddingInvitation.js"></script>
 </body>
 </html>

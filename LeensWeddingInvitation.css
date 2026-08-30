@@ -214,6 +214,15 @@
     radial-gradient(ellipse 300px 230px at 65% 78%, rgba(255, 255, 255, 0.04), transparent 60%),
     radial-gradient(ellipse 260px 200px at 15% 82%, rgba(0, 0, 0, 0.05), transparent 58%);
 
+  /* Shared light-source convention: every sheen/highlight gradient on the
+     envelope (paper, flap front/back, wedges) reads light as coming from
+     this same upper-left direction — was three separately hardcoded
+     "128deg" literals before this token, now a single named value so
+     anything else that needs to match the site's lighting (e.g. the
+     falling-petal sprites' own highlight, read via getComputedStyle in
+     LeensWeddingInvitation.js) has one real place to read it from. */
+  --light-angle: 128deg;
+
   /* Envelope geometry: the % point down the screen where the flap's
      lower boundary sits (and where the X-crease lines / seal converge).
      Bumped 62% -> 68% (this pass) so the flap's lower edge reaches down
@@ -260,6 +269,29 @@
      as the page losing its ivory/sage Italian-villa identity rather than
      a deliberate lighting change.) */
   --parallax-y: 0px;
+}
+
+/* Responsive pass: envelope on short viewports (phones in landscape,
+   mainly — e.g. 844x390 measured directly, not assumed). Root cause: the
+   flap's vine embroidery (.flap-embroidery) sizes itself off viewport
+   WIDTH (min(70%, 300px)), while the seal/caption position off
+   --apex-y, a percentage of viewport HEIGHT. On a short-but-wide
+   viewport those two bases disagree — the vine renders at its full
+   (width-driven) size while the vertical room to fit it above the seal
+   shrinks, and the seal ends up overlapping the vine's own lower flowers
+   (confirmed via direct screenshot, not just reasoned about). Below
+   that, the caption's own top offset (apex-y + half the seal + a fixed
+   margin) can land close enough to the bottom edge that its two lines
+   of text get clipped by #envelope-screen's overflow:hidden.
+   --apex-y itself is deliberately NOT touched here — the flap's own
+   seam SVG has hardcoded points tuned to that exact value (see its own
+   comment), and this pass doesn't touch anything upstream of the flap's
+   fold. Only --seal-size (independent of the seam) shrinks further, and
+   the vine + caption get their own compact overrides just below. */
+@media (max-height: 500px) {
+  :root {
+    --seal-size: clamp(90px, 16vmin, 190px);
+  }
 }
 
 /* Dark theme: deep olive page, warm ivory/cream text — set by
@@ -438,7 +470,11 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
 
 /* Candle line art */
 #motif-candle .candle-body {
-  fill: var(--color-ivory);
+  /* Idle-life pass: was a flat var(--color-ivory) — real wax picks up a
+     warm tint nearest the lit end, so this now references the shared
+     #candle-wax-warm gradient (defined once in index.html's <defs>,
+     reused by every candle sitewide) instead of one plain color. */
+  fill: url(#candle-wax-warm);
   stroke: var(--color-gold-hairline);
   stroke-width: 1;
 }
@@ -456,7 +492,13 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
   fill: #e2a955;
   transform-box: fill-box;
   transform-origin: 50% 100%;
-  animation: flame-flicker 2.4s ease-in-out infinite;
+  /* --flicker-duration added alongside the existing --flicker-delay (idle-
+     life pass) — every candle already staggered its PHASE via delay, but
+     shared the exact same 2.4s cycle/amplitude, so any two candles could
+     still drift back into visible unison periodically. A per-instance
+     duration (see index.html's --flicker-duration overrides) means they
+     never fully realign. */
+  animation: flame-flicker var(--flicker-duration, 2.4s) ease-in-out infinite;
   animation-delay: var(--flicker-delay, 0s);
   will-change: transform, opacity;
 }
@@ -790,17 +832,112 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
   opacity: 0.92;
 }
 
-.botanical-candle {
+/* Candle glow pass: position/height moved from .botanical-candle itself
+   onto a new .candle-wrap that ALSO holds the new .candle-glow-halo
+   sibling (see the HTML) — the svg now just fills whatever box its wrap
+   defines, same numbers as before (58/70/82% left, 34/24/29% height). */
+.candle-wrap {
   position: absolute;
   bottom: 0;
   width: 9%;
-  height: auto;
 }
-.botanical-candle--tall { left: 58%; height: 34%; }
-.botanical-candle--short { left: 70%; height: 24%; }
-/* ENRICHED (this pass): third candle, same .botanical-candle base +
+.candle-wrap--tall { left: 58%; height: 34%; }
+.candle-wrap--short { left: 70%; height: 24%; }
+/* ENRICHED (this pass): third candle, same .candle-wrap base +
    flicker/glow technique as the two above, just its own position/height. */
-.botanical-candle--mid { left: 82%; height: 29%; }
+.candle-wrap--mid { left: 82%; height: 29%; }
+
+.candle-wrap .botanical-candle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* The enlarged flame (now ~30% of the candle's own height instead of
+     ~16%, see the flame's own transform in the HTML) extends above this
+     SVG's y=0 viewBox edge — SVG roots clip to their own viewBox by
+     default, so without this the flame's own tip would be invisibly cut
+     off rather than sticking up past the candle body as intended. */
+  overflow: visible;
+}
+
+/* Candle glow pass: the corner clusters' candles are now inlined SVG
+   (see the HTML comment there for why — GSAP needs to reach
+   .candle-flame directly, which a <use>-referenced symbol doesn't allow
+   from JS). These 3 rules are the exact same values as the shared
+   #motif-candle .candle-body/.candle-wick/.candle-detail rules just
+   below, unscoped so they apply here too (an ID-scoped selector can't
+   reach into plain inlined markup that isn't a descendant of that ID). */
+.candle-wrap .candle-body {
+  fill: url(#candle-wax-warm);
+  stroke: var(--color-gold-hairline);
+  stroke-width: 1;
+}
+.candle-wrap .candle-detail {
+  stroke: var(--color-gold-hairline);
+  stroke-width: 0.6;
+  opacity: 0.5;
+}
+.candle-wrap .candle-wick {
+  stroke: #4a4130;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+/* No animation here (unlike #motif-candle .candle-flame elsewhere on the
+   page) — GSAP drives this one directly, see initCandleGlow() in the JS.
+   No fill here either (2nd revision): the flame is now two child <path>s
+   (outer amber shape + inner white-to-blue hot core, see the HTML) each
+   with its own gradient fill, not one flat-color shape on this group.
+   transform-box/transform-origin still matter: GSAP's scale/skew need
+   the same fill-box-relative pivot the CSS reference recipe used —
+   50% 95%, i.e. pivoting near the flame's own base (anchored at the
+   wick) rather than dead center. */
+.candle-wrap .candle-flame {
+  transform-box: fill-box;
+  transform-origin: 50% 95%;
+}
+
+/* The new "actual light source" glow — much bigger than the candle's own
+   narrow SVG box (unlike the small in-icon #flame-glow circle, which is
+   clipped to that box and can't bleed outward), blurred + screen-blended
+   so it warms the fabric grain/mottle underneath instead of sitting on
+   top of it as a flat tinted disc. Positioned near the flame tip (top of
+   the candle) via the wrap's own coordinate space.
+
+   SIZING FIX (this pass): this used to be `width: 340%` — a percentage
+   of .candle-wrap's WIDTH, which is the same fixed 9% for all 3 candles
+   regardless of height, so every candle got an identical glow size no
+   matter how tall it actually was. A percentage HEIGHT here resolves
+   against .candle-wrap's own height instead (34/24/29% per candle — see
+   .candle-wrap--tall/short/mid above), which is the dimension that
+   actually varies per candle, so pairing `height: 380%` with
+   `aspect-ratio: 1` and no explicit width (letting the ratio derive it
+   FROM the height) makes each candle's glow scale to ITS OWN height —
+   this is a genuine ~3.8x-candle-height circle now, not a shared size
+   that happened to look plausible on one specific candle. Opacity/scale
+   are driven by GSAP in sync with that candle's own flame flicker; the
+   values here are just its resting/reduced-motion appearance — raised
+   from the first pass's 0.65/0.3 stops, which read as too faint at the
+   real rendered size once actually checked against a live screenshot
+   rather than assumed from the code alone. */
+.candle-glow-halo {
+  position: absolute;
+  left: 50%;
+  top: 12%;
+  height: 380%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 190, 90, 0.82) 0%,
+    rgba(255, 150, 55, 0.4) 32%,
+    rgba(255, 140, 50, 0.1) 55%,
+    transparent 72%
+  );
+  filter: blur(5px);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
 
 /* ENRICHED: an extra shorter sprig (reuses #motif-eucalyptus-sprig,
    already used elsewhere on the site) for a varied length/direction
@@ -831,6 +968,35 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
 /* ENRICHED (this pass): a third bloom, asymmetrically placed near the
    new extra candle rather than mirroring the first two. */
 .envelope-botanicals .botanical-bloom--3 { left: 64%; bottom: 50%; width: 8%; opacity: 0.6; }
+
+/* Idle-life pass: a handful of tiny soft-glowing specks drifting slowly
+   upward near the candle flames, like dust or motes catching candlelight
+   — atmosphere, not a particle show, so kept small/faint/few (3 per
+   corner, 6 total). Plain CSS (no canvas/JS): each is just a small
+   radial-gradient dot, absolutely positioned like the blooms/candles
+   above, with a shared drift+fade keyframe staggered per instance via
+   inline --mote-delay/--mote-duration (same pattern as the candles'
+   --flicker-delay/--flicker-duration). .envelope-botanicals--right's own
+   scaleX(-1) mirrors these along with everything else in that cluster,
+   same as the candles/blooms. */
+.ambient-mote {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 224, 168, 0.95) 0%, rgba(255, 210, 140, 0.35) 55%, transparent 75%);
+  opacity: 0;
+  animation: ambient-mote-drift var(--mote-duration, 7s) ease-in infinite;
+  animation-delay: var(--mote-delay, 0s);
+  will-change: transform, opacity;
+}
+@keyframes ambient-mote-drift {
+  0% { transform: translateY(0) scale(0.85); opacity: 0; }
+  18% { opacity: 0.7; }
+  55% { opacity: 0.85; }
+  90% { opacity: 0; }
+  100% { transform: translateY(-34px) scale(1.1); opacity: 0; }
+}
 
 /* REMOVED (this pass): .envelope-seams (the full-width horizontal gold
    hairline). With a real triangular flap, the body is only exposed in
@@ -937,7 +1103,7 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
   background:
     var(--pattern),
     var(--mottle),
-    linear-gradient(128deg, rgba(255, 255, 255, 0.10), rgba(0, 0, 0, 0.05) 60%);
+    linear-gradient(var(--light-angle), rgba(255, 255, 255, 0.10), rgba(0, 0, 0, 0.05) 60%);
   background-size: 70px 70px, auto, auto, auto, auto, auto;
   background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
   mix-blend-mode: overlay;
@@ -1037,7 +1203,7 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
   background:
     var(--pattern),
     var(--mottle),
-    linear-gradient(128deg, rgba(255, 255, 255, 0.10), rgba(0, 0, 0, 0.05) 60%),
+    linear-gradient(var(--light-angle), rgba(255, 255, 255, 0.10), rgba(0, 0, 0, 0.05) 60%),
     var(--flap-light-gradient);
   background-size: 70px 70px, auto, auto, auto, auto, cover, cover;
   background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
@@ -1113,6 +1279,21 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
   filter: drop-shadow(0 1.5px 1px rgba(60, 40, 20, 0.45));
   pointer-events: none;
 }
+/* Responsive pass: on short viewports this sizes off width alone
+   (min(70%, 300px)) while the seal below it sits at a height-based
+   position (--apex-y) — on a short-but-wide viewport (phones in
+   landscape) the vine renders at its full width-driven size while the
+   vertical room above the seal shrinks, and the two collide (confirmed
+   by direct screenshot at 844x390). Shrinking the vine's own ceiling
+   here, alongside --seal-size's own compact override near :root, is
+   what actually fixes the overlap — see that override's own comment for
+   the full reasoning. top/left/transform untouched. */
+@media (max-height: 500px) {
+  .flap-embroidery {
+    width: min(45%, 160px);
+    top: 5%;
+  }
+}
 
 .flap-face--front::before {
   content: "";
@@ -1151,7 +1332,7 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
   background:
     var(--pattern),
     var(--mottle),
-    linear-gradient(128deg, rgba(255, 255, 255, 0.10), rgba(0, 0, 0, 0.05) 60%),
+    linear-gradient(var(--light-angle), rgba(255, 255, 255, 0.10), rgba(0, 0, 0, 0.05) 60%),
     linear-gradient(165deg, var(--color-beige) 0%, var(--color-beige-deep) 100%);
   background-size: 70px 70px, auto, auto, auto, auto, cover, cover;
   background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
@@ -1180,6 +1361,26 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
   height: var(--seal-size);
 
   backface-visibility: hidden;
+}
+
+/* Candle glow pass: same centering approach as .envelope-seal-halo (see
+   its own comment) — sized a bit wider than the halo so it reads as
+   ambient light wrapping around the ring, not a spotlight confined to
+   it. Opacity is driven by GSAP (initSealCandlelightGlow() in the JS);
+   the value here is its resting/reduced-motion appearance, already low
+   per "subtle enough to read as ambient light, not a spotlight." */
+.seal-candlelight-glow {
+  position: absolute;
+  top: var(--apex-y);
+  left: 50%;
+  width: calc(var(--seal-size) * 1.7);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 195, 110, 0.28) 0%, rgba(255, 170, 80, 0.12) 40%, transparent 70%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  opacity: 0.5;
 }
 
 /* REBUILT (design-system pass): the medallion is no longer a photo (was
@@ -1272,13 +1473,24 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
      portable, so 129% here rather than a literal px value. */
   width: 129%;
   height: 129%;
-  transform: translate(-50%, -50%);
   border-radius: 50%;
   border: 1px solid rgba(244, 233, 200, 0.55);
   box-shadow:
     0 0 0 3px rgba(20, 16, 6, 0.12),
     inset 0 0 0 1px rgba(20, 16, 6, 0.1);
   pointer-events: none;
+  /* Idle-life pass: a very slow, barely-there breathing pulse — ONLY on
+     this ring, never on .envelope-seal-medallion (which stays completely
+     untouched per instruction). The base translate(-50%,-50%) centering
+     is folded into the keyframe itself (every step still centers, just
+     with a tiny scale/opacity drift added) rather than left as a static
+     transform here, so there's one transform declaration total, not two
+     fighting each other. */
+  animation: seal-halo-breathe 6.5s ease-in-out infinite;
+}
+@keyframes seal-halo-breathe {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  50%      { transform: translate(-50%, -50%) scale(1.025); opacity: 0.82; }
 }
 .envelope-seal-halo::before {
   content: "";
@@ -1467,6 +1679,26 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
   color: var(--color-gold-hairline);
   opacity: 0.9;
   animation: hint-pulse 2.6s ease-in-out infinite;
+}
+
+/* Responsive pass: on short viewports (see .flap-embroidery's own
+   compact override for the full root-cause writeup), .envelope-caption's
+   top offset (apex-y + half the seal + a fixed margin) can land close
+   enough to the bottom edge that these two lines of text get clipped by
+   #envelope-screen's own overflow:hidden. Shrinking the margin (folded
+   into .envelope-caption's own calc()) plus these two text sizes/gap is
+   what buys back enough room to fit both lines comfortably instead. */
+@media (max-height: 500px) {
+  .envelope-caption {
+    top: calc(var(--apex-y) + (var(--seal-size) / 2) + 0.5rem);
+  }
+  .envelope-script {
+    font-size: clamp(1.1rem, 5vw, 1.4rem);
+  }
+  .envelope-hint {
+    margin-top: 0.4rem;
+    font-size: 0.7rem;
+  }
 }
 
 @keyframes hint-pulse {
@@ -3130,8 +3362,20 @@ body.lightbox-open {
 
   .envelope-hint,
   .candle-flame,
-  .leaf-sway {
+  .leaf-sway,
+  .envelope-seal-halo,
+  .ambient-mote {
     animation: none !important;
+  }
+  /* .envelope-seal-halo's centering translate(-50%,-50%) lives INSIDE its
+     breathing-pulse keyframe (see the CSS), not as its own static
+     transform, specifically so there's only one transform declaration
+     to animate rather than two competing — but that means disabling the
+     animation above would otherwise leave it with no transform at all
+     (uncentered). Restoring it here as a plain static value is what
+     keeps the ring centered with the animation off. */
+  .envelope-seal-halo {
+    transform: translate(-50%, -50%);
   }
 
   .envelope-script.is-unlocking,

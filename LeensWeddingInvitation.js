@@ -272,6 +272,133 @@ function initMusicToggle() {
 }
 
 /* --------------------------------------------------------------------------
+   1B. CANDLE GLOW (GSAP) — idle ambient life, entirely independent of the
+   envelope open interaction below (nothing here touches openInvitation(),
+   the flap, or the seal tap handler).
+
+   Each corner-cluster candle (see index.html — these 3-per-side candles
+   are inlined SVG now, not <use href="#motif-candle">, specifically so
+   GSAP can reach .candle-flame via plain document.querySelectorAll; a
+   <use>'s cloned shadow content isn't reachable that way, confirmed by
+   direct testing) gets its own .candle-flame + .candle-glow-halo pair.
+   Both are driven by a GSAP timeline reproducing an exact provided
+   keyframe recipe (4 flame stops at 25/50/75/100%, a 2-stop glow pulse,
+   a 2-stop seal breathe) rather than CSS @keyframes — GSAP animates by
+   writing styles directly each tick (like the falling-petal canvas loop
+   already does), sidestepping a rendering quirk this session already
+   hit once elsewhere on this page with CSS @keyframes on this general
+   family of nested elements (see #ribbon-bow's removal history). What
+   makes candles never look mechanically synced isn't the shape of any
+   one candle's cycle (they all run the identical recipe) — it's that
+   each of the 6 candles gets its OWN specific duration/delay pair below
+   (explicitly chosen, not randomized, per the exact spec this was built
+   from), so despite sharing one motion recipe, no two ever land on the
+   same beat.
+   -------------------------------------------------------------------------- */
+
+// One flame cycle: scale/skew/opacity return to their rest values at
+// each stop, matching a 0%→25%→50%→75%→100% CSS keyframe loop where the
+// same ease applies to every segment (the default when no keyframe sets
+// its own timing-function) — sine.inOut approximates CSS ease-in-out.
+function buildFlameTimeline(el, duration) {
+  const seg = duration / 4;
+  const tl = gsap.timeline({ repeat: -1 });
+  tl.to(el, { scaleX: 1.04, scaleY: 0.97, skewX: -2, opacity: 0.94, duration: seg, ease: "sine.inOut" })
+    .to(el, { scaleX: 0.96, scaleY: 1.05, skewX: 1.5, opacity: 1, duration: seg, ease: "sine.inOut" })
+    .to(el, { scaleX: 1.02, scaleY: 0.98, skewX: -1, opacity: 0.96, duration: seg, ease: "sine.inOut" })
+    .to(el, { scaleX: 1, scaleY: 1, skewX: 0, opacity: 1, duration: seg, ease: "sine.inOut" });
+  return tl;
+}
+// Glow pulse: a plain 2-stop breathe (brighten+grow at the midpoint,
+// settle back at the loop point), tied to the SAME candle's flame via
+// its own duration/delay pair below so the light visibly breathes with
+// it without being literally the same tween.
+function buildGlowTimeline(el, duration) {
+  const seg = duration / 2;
+  const tl = gsap.timeline({ repeat: -1 });
+  tl.to(el, { opacity: 1, scale: 1.08, duration: seg, ease: "sine.inOut" }).to(el, {
+    opacity: 0.85,
+    scale: 1,
+    duration: seg,
+    ease: "sine.inOut",
+  });
+  return tl;
+}
+
+// Exact per-candle timing pairs, left cluster's own values (order
+// matches the DOM: tall, short, mid). The right cluster reuses the same
+// 3 pairs with a flat +0.35s offset added to every delay below, so the
+// two clusters' otherwise-identical candles never land on the same beat
+// either — matching in cadence would be as noticeable as matching within
+// one cluster given both are visible together on the closed envelope.
+const CANDLE_TIMING = [
+  { flameDuration: 1.7, flameDelay: 0, glowDuration: 2.1, glowDelay: 0.2 },
+  { flameDuration: 2.3, flameDelay: 0.4, glowDuration: 2.6, glowDelay: 0.1 },
+  { flameDuration: 1.9, flameDelay: 0.7, glowDuration: 2.2, glowDelay: 0.5 },
+];
+const CANDLE_CLUSTER_OFFSET_S = 0.35;
+
+function initCandleGlow() {
+  if (typeof gsap === "undefined") return; // CDN failed to load — page still works, just without this ambient layer
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const timelines = [];
+
+  document.querySelectorAll(".envelope-botanicals").forEach((cluster, clusterIndex) => {
+    const clusterOffset = clusterIndex * CANDLE_CLUSTER_OFFSET_S;
+    cluster.querySelectorAll(".candle-wrap").forEach((wrap, i) => {
+      const flame = wrap.querySelector(".candle-flame");
+      const glow = wrap.querySelector(".candle-glow-halo");
+      if (!flame || !glow) return;
+
+      if (prefersReducedMotion) {
+        // Static mid-point values, per request — no scale/opacity/skew
+        // drama, just a plausible resting look.
+        gsap.set(flame, { scaleX: 1, scaleY: 1, skewX: 0, opacity: 0.97 });
+        gsap.set(glow, { opacity: 0.92, scale: 1.04 });
+        return;
+      }
+
+      const timing = CANDLE_TIMING[i % CANDLE_TIMING.length];
+      const flameTl = buildFlameTimeline(flame, timing.flameDuration);
+      flameTl.delay(timing.flameDelay + clusterOffset);
+      const glowTl = buildGlowTimeline(glow, timing.glowDuration);
+      glowTl.delay(timing.glowDelay + clusterOffset);
+      timelines.push(flameTl, glowTl);
+    });
+  });
+
+  const sealGlow = document.querySelector(".seal-candlelight-glow");
+  if (sealGlow) {
+    if (prefersReducedMotion) {
+      gsap.set(sealGlow, { opacity: 0.8 });
+    } else {
+      // 2-stop breathe (0.6 -> 1 -> 0.6 opacity, ~5s each way), delayed
+      // 0.9s so it never pulses in obvious lockstep with the much
+      // faster candle cycles above.
+      const sealTl = gsap.timeline({ repeat: -1, delay: 0.9 });
+      sealTl
+        .to(sealGlow, { opacity: 1, duration: 2.5, ease: "sine.inOut" })
+        .to(sealGlow, { opacity: 0.6, duration: 2.5, ease: "sine.inOut" });
+      timelines.push(sealTl);
+    }
+  }
+
+  // Pause everything in a hidden tab rather than animating uselessly in
+  // the background — gsap.globalTimeline covers every tween above (and
+  // nothing else on this page uses GSAP), so one pause/resume pair is
+  // enough rather than tracking each timeline's play state individually.
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) gsap.globalTimeline.pause();
+    else gsap.globalTimeline.resume();
+  });
+
+  // Exposed for completeness (this page never actually unmounts this
+  // section, but killing cleanly is one line either way).
+  return () => timelines.forEach((t) => t.kill());
+}
+
+/* --------------------------------------------------------------------------
    2. ENVELOPE OPEN INTERACTION
    Matches the timing/feel of the envelope-realistic/ demo exactly (same
    1.1s flap, same 1.4s content reveal starting partway through the flap
@@ -1007,6 +1134,7 @@ const PETAL_TIERS = [
     driftAmp: [7, 15],
     driftFreq: [0.35, 0.75],
     rotationSpeed: [0.15, 0.4],
+    windSensitivity: 0.6, // background petals feel the shared wind least
   },
   {
     name: "medium",
@@ -1017,6 +1145,7 @@ const PETAL_TIERS = [
     driftAmp: [13, 25],
     driftFreq: [0.5, 1.0],
     rotationSpeed: [0.25, 0.65],
+    windSensitivity: 1.0,
   },
   {
     name: "large",
@@ -1027,6 +1156,7 @@ const PETAL_TIERS = [
     driftAmp: [19, 34],
     driftFreq: [0.65, 1.3],
     rotationSpeed: [0.35, 0.9],
+    windSensitivity: 1.5, // foreground petals get pushed the most, for depth-consistent parallax
   },
 ];
 
@@ -1060,6 +1190,24 @@ function randRange(range) {
   return range[0] + Math.random() * (range[1] - range[0]);
 }
 
+// Reads the envelope's own shared --light-angle custom property (the
+// site-wide "light comes from here" convention every sheen/highlight
+// gradient on the envelope already uses — see its definition in
+// LeensWeddingInvitation.css) and converts it into a unit vector pointing
+// TOWARD where the light source itself sits, so the petal sprite's own
+// highlight can be aimed the same direction instead of an independently
+// eyeballed offset. A CSS linear-gradient(angle, ...) travels FROM its
+// first color stop TO its last along (sin(angle), -cos(angle)) in
+// screen-space (x-right, y-down) — since our gradients go light-stop
+// first, dark-stop last, that vector points AWAY from the light, so the
+// light direction itself is the negation of it.
+function lightAngleOffsetVector() {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue("--light-angle").trim();
+  const deg = parseFloat(raw) || 128; // falls back to the site's own established angle if unreadable
+  const rad = (deg * Math.PI) / 180;
+  return { x: -Math.sin(rad), y: Math.cos(rad) };
+}
+
 // Pre-renders every theme/tier combination once (2 themes x 3 tiers = 6
 // sprites total). Each sprite is drawn by filling the SAME Path2D (the
 // blossom's own petal shape) with a radial gradient, offset toward the
@@ -1079,6 +1227,10 @@ function buildPetalSprites() {
   const path = new Path2D(PETAL_PATH_D);
   const themes = { dark: PETAL_COLOR_DARK, light: PETAL_COLOR_LIGHT };
   const sprites = {};
+  // Same direction for every sprite (the light source doesn't move
+  // between tiers/themes), so this is computed once outside the loop.
+  const light = lightAngleOffsetVector();
+  const highlightMagnitude = 3.2; // native path units, offset from the petal's own center
   for (const themeKey of Object.keys(themes)) {
     const stops = themes[themeKey];
     sprites[themeKey] = {};
@@ -1098,7 +1250,14 @@ function buildPetalSprites() {
       const scale = sizePx / PETAL_NATIVE_H;
       octx.translate(w / 2, h - pad);
       octx.scale(scale, scale);
-      const gradient = octx.createRadialGradient(-1, -8, 0.4, 0, -6, 8.5);
+      const gradient = octx.createRadialGradient(
+        light.x * highlightMagnitude,
+        -6 + light.y * highlightMagnitude,
+        0.4,
+        0,
+        -6,
+        8.5,
+      );
       gradient.addColorStop(0, stops[0]);
       gradient.addColorStop(0.55, stops[1]);
       gradient.addColorStop(1, stops[2]);
@@ -1180,7 +1339,20 @@ function initPetals() {
   let active = false;
   let lastFrameTime = 0;
 
-  function spawnPetal() {
+  // Shared wind field: ONE slowly-varying global value (not per-petal),
+  // computed once per frame in update() and applied to every petal that
+  // frame, on top of each petal's own individual sway — a gentle breeze
+  // direction that drifts back and forth over an 8-15s period, rather
+  // than every petal swaying independently with nothing tying them
+  // together. windTime/PHASE/FREQ live here (not as module-level
+  // constants) since they're this one initPetals() run's own timeline.
+  const WIND_PERIOD_SEC = 11;
+  const WIND_FREQ = (Math.PI * 2) / WIND_PERIOD_SEC; // rad/s, same convention as a petal's own driftFreq
+  const WIND_PHASE = Math.random() * Math.PI * 2;
+  const WIND_AMPLITUDE = 13; // px/s of extra lateral drift at the wind's peak
+  let windTime = 0;
+
+  function spawnPetal(xOverride) {
     if (petals.length >= PETAL_MAX_COUNT) return;
     const tier = pickPetalTier();
     const vy = randRange(tier.vy);
@@ -1193,15 +1365,36 @@ function initPetals() {
     // instead of either getting cut off mid-air or lingering past it.
     const fallDistance = vh + spawnMargin + exitMargin;
     const lifespan = (fallDistance / vy) * 1000 * (0.9 + Math.random() * 0.2);
+    const rotationSpeed = (Math.random() < 0.5 ? -1 : 1) * randRange(tier.rotationSpeed); // rad/s, randomized direction
+    // Tumble (the sprite's own scaleX oscillation, see draw() below) gets
+    // its own randomized 1.5-3s period, independent of the in-plane spin
+    // above — but nudged faster when this petal's spin already is,
+    // "synced subtly with rotation speed" per request rather than fully
+    // decoupled from it.
+    const tumbleSpeedFactor = 0.8 + 0.4 * (Math.abs(rotationSpeed) / tier.rotationSpeed[1]);
+    const tumblePeriodSec = (1.5 + Math.random() * 1.5) / tumbleSpeedFactor;
+    const x = xOverride != null ? xOverride : Math.random() * vw;
+    const y = -spawnMargin - Math.random() * 40;
     petals.push({
-      x: Math.random() * vw,
-      y: -spawnMargin - Math.random() * 40,
+      x,
+      y,
       vy,
       driftAmp: randRange(tier.driftAmp),
       driftFreq: randRange(tier.driftFreq), // rad/s — gentle multi-second sway, not a fast wobble
       driftPhase: Math.random() * Math.PI * 2,
       rotation: Math.random() * Math.PI * 2,
-      rotationSpeed: (Math.random() < 0.5 ? -1 : 1) * randRange(tier.rotationSpeed), // rad/s, randomized direction
+      rotationSpeed,
+      tumbleFreq: (Math.PI * 2) / tumblePeriodSec, // rad/s, same convention as driftFreq
+      tumblePhase: Math.random() * Math.PI * 2,
+      windSensitivity: tier.windSensitivity,
+      // Brief near-zero-velocity pause right after spawn — a petal
+      // "hangs" for a beat before gravity/wind actually take it, rather
+      // than falling at full speed from the instant it appears. Falls
+      // comfortably inside the fade-in window (10% of even the shortest
+      // realistic lifespan here is several seconds — see the lifespan
+      // math above), so it reads as a subtle hesitation, not a visible
+      // freeze-frame.
+      hangTime: 150 + Math.random() * 150,
       flutterTimer: 2 + Math.random() * 6,
       flutterStrength: 0,
       // Theme is read fresh HERE, at spawn time, and then frozen on the
@@ -1217,6 +1410,8 @@ function initPetals() {
 
   function update(dt) {
     const dtSec = dt / 1000;
+    windTime += dt;
+    const windX = Math.sin((windTime / 1000) * WIND_FREQ + WIND_PHASE) * WIND_AMPLITUDE;
     for (let i = petals.length - 1; i >= 0; i--) {
       const p = petals[i];
       p.age += dt;
@@ -1224,7 +1419,13 @@ function initPetals() {
         petals.splice(i, 1);
         continue;
       }
-      p.y += p.vy * dtSec;
+      // Spawn-anticipation hang: skip the fall/wind displacement (but
+      // keep rotation alive, so it doesn't read as a hard freeze) until
+      // this petal's own hangTime has elapsed.
+      if (p.age >= p.hangTime) {
+        p.y += p.vy * dtSec;
+        p.x += windX * p.windSensitivity * dtSec;
+      }
       p.rotation += p.rotationSpeed * dtSec;
 
       // Flutter: an occasional brief perturbation to spin speed that
@@ -1244,20 +1445,43 @@ function initPetals() {
     ctx.clearRect(0, 0, vw, vh);
     for (const p of petals) {
       const f = p.age / p.lifespan;
+      // Eased fade: ease-out on the way in (quick appear, gentle
+      // settle), ease-in on the way out (slow to start fading, quicker
+      // right at the very end) — replaces the old straight-line fade,
+      // which read a little too mechanical/linear for a floating petal.
       let fade;
-      if (f < 0.1) fade = f / 0.1;
-      else if (f > 0.85) fade = Math.max(0, (1 - f) / 0.15);
-      else fade = 1;
+      if (f < 0.1) {
+        const t = f / 0.1;
+        fade = 1 - (1 - t) * (1 - t);
+      } else if (f > 0.85) {
+        const t = (f - 0.85) / 0.15;
+        fade = Math.max(0, 1 - t * t);
+      } else {
+        fade = 1;
+      }
       const opacity = p.baseOpacity * fade;
       if (opacity <= 0.01) continue;
 
       const driftX = Math.sin((p.age / 1000) * p.driftFreq + p.driftPhase) * p.driftAmp;
+      // Tumble: oscillates the sprite's own horizontal scale between
+      // ~1.0 (face-on) and ~0.15 (edge-on), on a period independent of
+      // the in-plane rotation above — mimics a petal turning in 3D as it
+      // falls, not just spinning flat in the screen plane.
+      const tumble = Math.abs(Math.cos((p.age / 1000) * p.tumbleFreq + p.tumblePhase));
+      const scaleX = 0.15 + 0.85 * tumble;
       const sprite = sprites[p.themeKey][p.tierName];
 
+      // NOTE: a motion-blur trail (one faint extra copy per large-tier
+      // petal, offset to its previous position) was implemented and
+      // measured here, then deliberately dropped — it cost ~15% of frame
+      // rate on a throttled mid-tier mobile simulation (22 vs 26fps),
+      // and per explicit instruction the trail was the first thing to
+      // give up rather than trimming density or the rest of the physics.
       ctx.save();
       ctx.globalAlpha = opacity;
       ctx.translate(p.x + driftX, p.y);
       ctx.rotate(p.rotation);
+      ctx.scale(scaleX, 1);
       ctx.drawImage(sprite.canvas, -sprite.cssW / 2, -sprite.cssH / 2, sprite.cssW, sprite.cssH);
       ctx.restore();
     }
@@ -1283,6 +1507,24 @@ function initPetals() {
   // requestAnimationFrame), plus a timestamp gate so bursts themselves
   // stay spaced out even across one long continuous scroll rather than
   // firing every rAF tick of it.
+  // Clustered scroll burst: instead of every petal in a burst appearing
+  // instantly at an independent full-width random x, pick ONE cluster
+  // center for the whole burst and stagger each petal's spawn by a small
+  // random delay — reads as a loose handful of petals disturbed together,
+  // not a mechanical simultaneous full-width sprinkle.
+  function spawnClusteredBurst(count) {
+    const clusterCenter = Math.random() * vw;
+    const spread = 90 + Math.random() * 70;
+    for (let i = 0; i < count; i++) {
+      const delay = Math.random() * 120;
+      setTimeout(() => {
+        if (!active) return;
+        const x = Math.min(vw, Math.max(0, clusterCenter + (Math.random() - 0.5) * spread));
+        spawnPetal(x);
+      }, delay);
+    }
+  }
+
   let lastScrollY = window.scrollY;
   let lastScrollSampleTime = performance.now();
   let lastBurstTime = 0;
@@ -1306,7 +1548,7 @@ function initPetals() {
       // a genuinely fast flick can still reach the new higher ceiling
       // rather than topping out at half of it.
       const count = Math.max(1, Math.min(PETAL_SCROLL_BURST_MAX, Math.round(velocity * 10)));
-      for (let i = 0; i < count; i++) spawnPetal();
+      spawnClusteredBurst(count);
     });
   }
   window.addEventListener("scroll", onScroll, { passive: true });
@@ -1338,6 +1580,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initRSVP();
   initMusicToggle(); // FIX #7 — wires the mute/unmute button; initEnvelope() below triggers the actual first play()
   initEnvelope();
+  initCandleGlow();
   initScrollAtmosphere();
   initPetals(); // builds the sprites + starts the render loop; doesn't spawn anything until activatePetals() fires — see that section's own comment
 });
