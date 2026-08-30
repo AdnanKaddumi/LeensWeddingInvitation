@@ -351,6 +351,7 @@ function initEnvelope() {
       document.body.style.overflow = "";
       startCountdown();
       initScratchCards();
+      activatePetals(); // envelope fully open — see section 7's own comment for why this is the trigger
     });
   }
 
@@ -573,17 +574,36 @@ function startCountdown() {
    prefers-reduced-motion the canvas is never created, so the date is
    simply visible.
    -------------------------------------------------------------------------- */
+// Module-scoped, assigned below once the real per-card reset callbacks
+// exist — same pattern as activatePetals() in section 7: this file is a
+// classic (non-module) script, so every top-level function already
+// shares one scope, and the "scratch again" button (wired up in
+// initScratchCards() itself, since that's where the card elements and
+// their per-card reset callbacks both live) just calls this directly.
+let resetScratchCards = () => {};
+
 function initScratchCards() {
   const canvases = document.querySelectorAll("[data-scratch-card]");
+  const resetBtn = document.getElementById("scratch-reset-btn");
   if (!canvases.length) return;
 
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (prefersReducedMotion) {
     canvases.forEach((canvas) => canvas.remove());
+    // Nothing left to re-cover — the date is just shown plainly for this
+    // guest, so a "scratch again" button here would be a dead control.
+    if (resetBtn) resetBtn.hidden = true;
     return;
   }
 
-  canvases.forEach(setupScratchCard);
+  // setupScratchCard() returns that one card's own forceReset() —
+  // collected here so the button can re-coat every card in one click.
+  const cardResets = Array.from(canvases).map(setupScratchCard);
+  resetScratchCards = () => cardResets.forEach((reset) => reset());
+
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => resetScratchCards());
+  }
 }
 
 const SCRATCH_BRUSH_RADIUS = 26; // ~65% of the old 40px radius — a believable scratch band, not a wide wipe
@@ -640,6 +660,21 @@ function setupScratchCard(canvas) {
     canvas.width = width * dpr;
     canvas.height = height * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    revealed = false;
+    lastPoint = null;
+    pendingSegments = [];
+    canvas.classList.remove("is-cleared");
+    paintCoating();
+  }
+
+  // "Scratch again" button target: unlike sizeCanvas() above, this always
+  // repaints regardless of whether the card's rendered size changed —
+  // clicking the button re-measures nothing, it just wants the coating
+  // back, so it can't reuse sizeCanvas()'s same-size-skips-the-reset
+  // guard (that guard exists specifically to stop a same-size "resize"
+  // event from wiping progress the guest didn't ask to lose — a button
+  // press is an explicit ask, the opposite case).
+  function forceReset() {
     revealed = false;
     lastPoint = null;
     pendingSegments = [];
@@ -757,6 +792,8 @@ function setupScratchCard(canvas) {
 
   window.addEventListener("resize", sizeCanvas);
   sizeCanvas();
+
+  return forceReset;
 }
 
 /* --------------------------------------------------------------------------
@@ -878,6 +915,420 @@ function initRSVP() {
 }
 
 /* --------------------------------------------------------------------------
+   7. AMBIENT FALLING PETALS
+   A single fixed, full-viewport <canvas> (#petal-canvas, last element in
+   <body> — see its own HTML comment) with a requestAnimationFrame loop,
+   NOT individual DOM elements per petal — 15-20 continuously-animated DOM
+   nodes on a page this long would be a real layout-thrash risk; a canvas
+   sized to the viewport (it's fixed, so it never has to be page-length)
+   keeps the per-frame cost to a handful of drawImage() calls no matter
+   how far the guest has scrolled.
+
+   Petal shape reuses #vine-petal's own SVG path data (the exact same
+   elongated petal already established in the envelope's blossom motif,
+   not a circle/emoji/generic teardrop) via the Path2D constructor's
+   built-in support for SVG path-data strings — so this never drifts out
+   of sync with the blossom's own petal silhouette. That path is filled
+   ONCE per size/color combination onto small offscreen sprite canvases at
+   startup (buildPetalSprites()); every subsequent frame just
+   translate+rotate+drawImage()s one of those pre-rendered sprites per
+   petal, rather than re-running the gradient fill 15-20 times a frame.
+
+   Two entry points into the rest of the site, both deliberately additive
+   — neither changes any existing line, timing, or transform elsewhere:
+     - initPetals() is called once from the main DOMContentLoaded init
+       below, same as every other initX() there. It builds the sprites,
+       sizes the canvas, and starts the rAF loop — but doesn't spawn any
+       petals yet (`active` stays false) — per request, the effect should
+       only begin once the envelope has actually finished opening, not
+       during the envelope/verse intro screens.
+     - activatePetals() (module-scoped, not a global — this file is a
+       classic script so every top-level function already shares one
+       scope, no window.* needed) is called once, from inside
+       finishReveal() in initEnvelope() — a single new line alongside
+       that function's existing startCountdown()/initScratchCards()
+       calls, not a modification to anything already there. That's the
+       "envelope fully opening" trigger: a denser one-time release burst,
+       then the steady ambient trickle begins.
+   -------------------------------------------------------------------------- */
+const PETAL_PATH_D = "M0,0 C -2.4,-1.5 -3.8,-4.2 -3.0,-7.3 C -2.6,-9.1 -1.1,-10.8 0.3,-11.9 C 1.6,-10.5 2.9,-8.7 3.2,-6.6 C 3.5,-4.1 2.0,-1.6 0,0 Z";
+// Native path bounding box, roughly (control points overshoot the true
+// curve slightly — the sprite padding below absorbs that difference).
+const PETAL_NATIVE_W = 7;
+const PETAL_NATIVE_H = 12.5;
+
+// THEME-AWARE COLOR (bug fix): white petals were invisible against the
+// light theme's ivory/beige background — no contrast at all. Color is now
+// keyed to the SITE's own light/dark theme (data-theme on <html>, same
+// attribute applyTheme()/initThemeToggle() already manage above) instead
+// of picking a random variety of tints regardless of background. Each
+// theme reuses an EXISTING gradient verbatim rather than introducing a
+// new color just for this:
+//   dark  -> index.html's own <radialGradient id="vine-petal-white"> stops
+//            (bright white center, soft warm-gray edge) — unchanged from
+//            before, this already worked against the dark olive background.
+//   light -> index.html's own <radialGradient id="vine-leaf-gradient">
+//            stops (light warm cream center, deeper olive-gold edge) —
+//            the same tones the envelope's vine LEAVES already use, which
+//            reads clearly against ivory.
+// A petal's color is fixed at the moment it spawns (read fresh from the
+// current data-theme each time) and never changes afterward — so toggling
+// mid-fall never jarringly recolors a petal already in flight; new petals
+// simply start picking up the new theme's color within about half a
+// second (the ambient trickle interval), the "let already-falling petals
+// keep their current color" option from the two offered, chosen because
+// it can't ever look like a discontinuity — there's nothing to notice.
+const PETAL_COLOR_DARK = ["#ffffff", "#f8f4e9", "#dcd2b4"]; // = #vine-petal-white
+const PETAL_COLOR_LIGHT = ["#eee3ba", "#cfbb82", "#93875a"]; // = #vine-leaf-gradient
+
+function currentPetalThemeKey() {
+  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+
+// VARIED SIZE, TIED TO DEPTH: three explicit tiers rather than one
+// continuous random range — three clear, repeatable steps read as
+// intentional depth; fully continuous randomness tends to blend into
+// sameness instead. Every other per-petal range (fall speed, opacity,
+// drift, spin) is drawn from THAT tier's own range, not varied
+// independently of size — a petal's size, speed, and opacity all move
+// together as "how far back is this one," matching the layering a guest
+// actually reads as depth (small+slow+faint = background,
+// large+fast+bold = foreground). weight is the probability of a spawned
+// petal landing in that tier: small/medium do the bulk of the work,
+// large stays a deliberately occasional accent (per request, "keep the
+// large-petal proportion modest").
+const PETAL_TIERS = [
+  {
+    name: "small",
+    weight: 0.4,
+    spriteSize: 9,
+    vy: [12, 19],
+    opacity: [0.26, 0.4],
+    driftAmp: [7, 15],
+    driftFreq: [0.35, 0.75],
+    rotationSpeed: [0.15, 0.4],
+  },
+  {
+    name: "medium",
+    weight: 0.4,
+    spriteSize: 14,
+    vy: [18, 27],
+    opacity: [0.42, 0.6],
+    driftAmp: [13, 25],
+    driftFreq: [0.5, 1.0],
+    rotationSpeed: [0.25, 0.65],
+  },
+  {
+    name: "large",
+    weight: 0.2,
+    spriteSize: 22,
+    vy: [24, 35],
+    opacity: [0.6, 0.85],
+    driftAmp: [19, 34],
+    driftFreq: [0.65, 1.3],
+    rotationSpeed: [0.35, 0.9],
+  },
+];
+
+// DENSITY (increased per request): cap 18 -> 36, ambient interval roughly
+// 2.5x faster, release burst and scroll burst both scaled up to match —
+// re-measured actual on-screen count and frame rate afterward at this
+// new density (see the test report), rather than assuming the increase
+// was performance-neutral.
+const PETAL_MAX_COUNT = 36;
+const PETAL_AMBIENT_INTERVAL_MS = [450, 800]; // range: ms between ambient spawns
+const PETAL_RELEASE_BURST = 14;
+const PETAL_SCROLL_BURST_MAX = 8;
+const PETAL_SCROLL_THROTTLE_MS = 150;
+const PETAL_STATIC_COUNT = 10; // prefers-reduced-motion: a few still petals, scaled with the density bump
+
+// module-scoped, assigned by initPetals() below, called by finishReveal()
+// in initEnvelope() — see this section's own header comment.
+let activatePetals = () => {};
+
+function pickPetalTier() {
+  const r = Math.random();
+  let acc = 0;
+  for (const tier of PETAL_TIERS) {
+    acc += tier.weight;
+    if (r < acc) return tier;
+  }
+  return PETAL_TIERS[0];
+}
+
+function randRange(range) {
+  return range[0] + Math.random() * (range[1] - range[0]);
+}
+
+// Pre-renders every theme/tier combination once (2 themes x 3 tiers = 6
+// sprites total). Each sprite is drawn by filling the SAME Path2D (the
+// blossom's own petal shape) with a radial gradient, offset toward the
+// upper-left of the petal for a soft highlight rather than a flat
+// center-fill — matching how the blossom's own petals (and the rest of
+// the envelope's shading) already read light from that same direction.
+// A thin edge stroke, in that same theme's own darkest stop color, is
+// baked in on top of the fill — this is what keeps the petal's
+// silhouette readable through its fade-in/fade-out (checked specifically
+// at LOW opacity, not just full strength, per request): since the stroke
+// is part of the same baked sprite pixels, it fades proportionally WITH
+// the fill when globalAlpha is applied at draw time, so the edge never
+// separately "disappears first" the way a fixed-opacity CSS
+// box-shadow/filter applied at runtime could.
+function buildPetalSprites() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const path = new Path2D(PETAL_PATH_D);
+  const themes = { dark: PETAL_COLOR_DARK, light: PETAL_COLOR_LIGHT };
+  const sprites = {};
+  for (const themeKey of Object.keys(themes)) {
+    const stops = themes[themeKey];
+    sprites[themeKey] = {};
+    for (const tier of PETAL_TIERS) {
+      const sizePx = tier.spriteSize;
+      const pad = sizePx * 0.22; // headroom for antialiasing at the edges
+      const h = sizePx + pad * 2;
+      const w = sizePx * (PETAL_NATIVE_W / PETAL_NATIVE_H) + pad * 2;
+      const off = document.createElement("canvas");
+      off.width = Math.ceil(w * dpr);
+      off.height = Math.ceil(h * dpr);
+      const octx = off.getContext("2d");
+      octx.scale(dpr, dpr);
+      // Map the path's native units (base at 0,0, tip up at y=-11.9) onto
+      // this sprite's own pixel box: centered horizontally, base sitting
+      // just above the bottom padding.
+      const scale = sizePx / PETAL_NATIVE_H;
+      octx.translate(w / 2, h - pad);
+      octx.scale(scale, scale);
+      const gradient = octx.createRadialGradient(-1, -8, 0.4, 0, -6, 8.5);
+      gradient.addColorStop(0, stops[0]);
+      gradient.addColorStop(0.55, stops[1]);
+      gradient.addColorStop(1, stops[2]);
+      octx.fillStyle = gradient;
+      octx.fill(path);
+      octx.lineWidth = 0.45;
+      octx.strokeStyle = stops[2];
+      octx.globalAlpha = 0.55;
+      octx.stroke(path);
+      sprites[themeKey][tier.name] = { canvas: off, cssW: w, cssH: h };
+    }
+  }
+  return sprites;
+}
+
+function initPetals() {
+  const canvas = document.getElementById("petal-canvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const sprites = buildPetalSprites();
+
+  let dpr = Math.min(window.devicePixelRatio || 1, 2);
+  // BUG: these must start at 0, NOT the current window size — the guard
+  // in resizeCanvas() below skips its own work when the size "hasn't
+  // changed" from vw/vh, and initializing them to the already-current
+  // window size made that guard trigger on the very FIRST call, so
+  // canvas.width/height never actually got set at all (silently left at
+  // the browser's built-in 300x150 default for an unset canvas — caught
+  // by explicitly sampling canvas.width in testing, not visually
+  // obvious, since CSS still stretched that tiny backing store to fill
+  // the viewport). 0 guarantees nextW/nextH can never match on the first
+  // real call, so the initial sizing always runs — same reasoning as
+  // width/height starting at 0 in setupScratchCard() above.
+  let vw = 0;
+  let vh = 0;
+
+  function resizeCanvas() {
+    // Same false-alarm-resize guard as the scratch cards' sizeCanvas()
+    // (see setupScratchCard() above): on mobile, scrolling shows/hides
+    // the browser's own address bar, which fires a real "resize" event
+    // even though nothing about this canvas's own target size changed.
+    // Harmless here either way (this canvas is fully redrawn from the
+    // `petals` array every frame, nothing persists IN the bitmap the way
+    // scratch progress did), but skipping the reassignment avoids a
+    // pointless context reset on every false alarm.
+    const nextW = window.innerWidth;
+    const nextH = window.innerHeight;
+    if (Math.abs(nextW - vw) < 0.5 && Math.abs(nextH - vh) < 0.5) return;
+    vw = nextW;
+    vh = nextH;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.ceil(vw * dpr);
+    canvas.height = Math.ceil(vh * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resizeCanvas();
+  window.addEventListener("resize", resizeCanvas);
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefersReducedMotion) {
+    // A few still petals, drawn once — never forced continuous motion on
+    // a guest who's asked for less of it. No rAF loop, no spawn timers,
+    // no scroll listener: this branch ends here.
+    const themeKey = currentPetalThemeKey();
+    for (let i = 0; i < PETAL_STATIC_COUNT; i++) {
+      const tier = pickPetalTier();
+      const sprite = sprites[themeKey][tier.name];
+      ctx.save();
+      ctx.globalAlpha = randRange(tier.opacity);
+      ctx.translate(Math.random() * vw, Math.random() * vh);
+      ctx.rotate(Math.random() * Math.PI * 2);
+      ctx.drawImage(sprite.canvas, -sprite.cssW / 2, -sprite.cssH / 2, sprite.cssW, sprite.cssH);
+      ctx.restore();
+    }
+    return;
+  }
+
+  const petals = [];
+  let active = false;
+  let lastFrameTime = 0;
+
+  function spawnPetal() {
+    if (petals.length >= PETAL_MAX_COUNT) return;
+    const tier = pickPetalTier();
+    const vy = randRange(tier.vy);
+    const spawnMargin = 40;
+    const exitMargin = 60;
+    // Lifespan is DERIVED from this petal's own fall speed (roughly how
+    // long it takes to cross spawn-to-exit at that speed), not picked
+    // independently — a slow petal automatically gets a longer lifespan
+    // to match, so it still fades out near the bottom of the viewport
+    // instead of either getting cut off mid-air or lingering past it.
+    const fallDistance = vh + spawnMargin + exitMargin;
+    const lifespan = (fallDistance / vy) * 1000 * (0.9 + Math.random() * 0.2);
+    petals.push({
+      x: Math.random() * vw,
+      y: -spawnMargin - Math.random() * 40,
+      vy,
+      driftAmp: randRange(tier.driftAmp),
+      driftFreq: randRange(tier.driftFreq), // rad/s — gentle multi-second sway, not a fast wobble
+      driftPhase: Math.random() * Math.PI * 2,
+      rotation: Math.random() * Math.PI * 2,
+      rotationSpeed: (Math.random() < 0.5 ? -1 : 1) * randRange(tier.rotationSpeed), // rad/s, randomized direction
+      flutterTimer: 2 + Math.random() * 6,
+      flutterStrength: 0,
+      // Theme is read fresh HERE, at spawn time, and then frozen on the
+      // petal for its whole life — see this section's own header comment
+      // on why that's the smoother of the two toggle-mid-fall options.
+      themeKey: currentPetalThemeKey(),
+      tierName: tier.name,
+      baseOpacity: randRange(tier.opacity),
+      age: 0,
+      lifespan,
+    });
+  }
+
+  function update(dt) {
+    const dtSec = dt / 1000;
+    for (let i = petals.length - 1; i >= 0; i--) {
+      const p = petals[i];
+      p.age += dt;
+      if (p.age >= p.lifespan || p.y > vh + 80) {
+        petals.splice(i, 1);
+        continue;
+      }
+      p.y += p.vy * dtSec;
+      p.rotation += p.rotationSpeed * dtSec;
+
+      // Flutter: an occasional brief perturbation to spin speed that
+      // decays back to zero, mimicking real petal tumbling — not a
+      // constant wobble layered on every petal all the time.
+      p.flutterTimer -= dtSec;
+      if (p.flutterTimer <= 0) {
+        p.flutterStrength = (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random() * 2);
+        p.flutterTimer = 3 + Math.random() * 6;
+      }
+      p.flutterStrength *= Math.pow(0.05, dtSec); // ~exponential decay, frame-rate independent
+      p.rotation += p.flutterStrength * dtSec;
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, vw, vh);
+    for (const p of petals) {
+      const f = p.age / p.lifespan;
+      let fade;
+      if (f < 0.1) fade = f / 0.1;
+      else if (f > 0.85) fade = Math.max(0, (1 - f) / 0.15);
+      else fade = 1;
+      const opacity = p.baseOpacity * fade;
+      if (opacity <= 0.01) continue;
+
+      const driftX = Math.sin((p.age / 1000) * p.driftFreq + p.driftPhase) * p.driftAmp;
+      const sprite = sprites[p.themeKey][p.tierName];
+
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.translate(p.x + driftX, p.y);
+      ctx.rotate(p.rotation);
+      ctx.drawImage(sprite.canvas, -sprite.cssW / 2, -sprite.cssH / 2, sprite.cssW, sprite.cssH);
+      ctx.restore();
+    }
+  }
+
+  function loop(time) {
+    requestAnimationFrame(loop);
+    // Pause entirely in a hidden tab — no update, no draw, no wasted
+    // battery/CPU — rather than continuing to render invisibly.
+    if (document.hidden) {
+      lastFrameTime = 0; // so the next visible frame doesn't see a huge dt
+      return;
+    }
+    const dt = lastFrameTime ? Math.min(time - lastFrameTime, 50) : 16;
+    lastFrameTime = time;
+    update(dt);
+    draw();
+  }
+  requestAnimationFrame(loop);
+
+  // Scroll burst: same rAF-gated throttle initScrollAtmosphere() already
+  // uses elsewhere in this file (a `ticking` flag around
+  // requestAnimationFrame), plus a timestamp gate so bursts themselves
+  // stay spaced out even across one long continuous scroll rather than
+  // firing every rAF tick of it.
+  let lastScrollY = window.scrollY;
+  let lastScrollSampleTime = performance.now();
+  let lastBurstTime = 0;
+  let scrollTicking = false;
+  function onScroll() {
+    if (scrollTicking) return;
+    scrollTicking = true;
+    requestAnimationFrame(() => {
+      scrollTicking = false;
+      if (!active) return;
+      const now = performance.now();
+      const dy = Math.abs(window.scrollY - lastScrollY);
+      const dt = Math.max(now - lastScrollSampleTime, 1);
+      const velocity = dy / dt; // px/ms
+      lastScrollY = window.scrollY;
+      lastScrollSampleTime = now;
+      if (velocity < 0.05) return; // ignore near-stationary scroll noise
+      if (now - lastBurstTime < PETAL_SCROLL_THROTTLE_MS) return;
+      lastBurstTime = now;
+      // Multiplier scaled up alongside PETAL_SCROLL_BURST_MAX (4 -> 8) so
+      // a genuinely fast flick can still reach the new higher ceiling
+      // rather than topping out at half of it.
+      const count = Math.max(1, Math.min(PETAL_SCROLL_BURST_MAX, Math.round(velocity * 10)));
+      for (let i = 0; i < count; i++) spawnPetal();
+    });
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+
+  function scheduleAmbient() {
+    const delay =
+      PETAL_AMBIENT_INTERVAL_MS[0] + Math.random() * (PETAL_AMBIENT_INTERVAL_MS[1] - PETAL_AMBIENT_INTERVAL_MS[0]);
+    setTimeout(() => {
+      if (active && !document.hidden) spawnPetal();
+      scheduleAmbient();
+    }, delay);
+  }
+
+  activatePetals = function () {
+    if (active) return;
+    active = true;
+    for (let i = 0; i < PETAL_RELEASE_BURST; i++) spawnPetal();
+    scheduleAmbient();
+  };
+}
+
+/* --------------------------------------------------------------------------
    8. INIT
    -------------------------------------------------------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
@@ -888,4 +1339,5 @@ document.addEventListener("DOMContentLoaded", () => {
   initMusicToggle(); // FIX #7 — wires the mute/unmute button; initEnvelope() below triggers the actual first play()
   initEnvelope();
   initScrollAtmosphere();
+  initPetals(); // builds the sprites + starts the render loop; doesn't spawn anything until activatePetals() fires — see that section's own comment
 });

@@ -333,7 +333,8 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
 #icon-close line,
 #icon-chevron-left polyline, #icon-chevron-right polyline,
 #icon-music-on line, #icon-music-on path,
-#icon-music-off line, #icon-music-off path {
+#icon-music-off line, #icon-music-off path,
+#icon-refresh path, #icon-refresh polyline {
   fill: none;
   stroke: currentColor;
   stroke-width: 1.4;
@@ -2172,6 +2173,36 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
 /* ==========================================================================
    7c. THE DATE — SCRATCH-TO-REVEAL CARDS
    ========================================================================== */
+/* Small "scratch again" button, centered above the cards row. Round and
+   deliberately tiny (30px) — a quiet utility control, not something meant
+   to compete with the cards themselves for attention. The icon nudges a
+   little further around on :active (a small extra rotation on top of the
+   press-scale) as a bit of tactile, literally "refresh"-shaped feedback. */
+.scratch-reset-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin: 0.35rem auto 0.85rem;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-section);
+  color: var(--text-accent);
+  cursor: pointer;
+  transition: background 200ms ease, transform 150ms ease;
+}
+.scratch-reset-btn:hover {
+  background: color-mix(in srgb, var(--text-accent) 14%, var(--bg-section));
+}
+.scratch-reset-btn:active {
+  transform: scale(0.88) rotate(-35deg);
+}
+.scratch-reset-icon {
+  width: 15px;
+  height: 15px;
+}
+
 .scratch-cards {
   display: flex;
   justify-content: center;
@@ -2653,6 +2684,28 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
 }
 
 
+
+/* Ambient falling petals — a single fixed, full-viewport canvas (see
+   initPetals() in the JS for the actual particle system; this rule is
+   just its box/stacking). z-index: 150 sits above every section's own
+   content (envelope included, z-index: 100) but below the lightbox
+   (z-index: 200) — petals shouldn't visually float over a guest's open
+   photo. pointer-events: none is what actually keeps it from blocking
+   clicks/taps on anything underneath (buttons, the scratch cards, the
+   RSVP form) — z-index alone wouldn't do that. width/height duplicate
+   inset: 0's sizing explicitly because canvas is a replaced element with
+   its own intrinsic 300x150 default; without an explicit size here the
+   canvas's actual DISPLAY box wouldn't stretch to inset: 0 the way a
+   plain div's would. */
+#petal-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100svh;
+  pointer-events: none;
+  z-index: 150;
+}
 
 /* Lightbox */
 .lightbox {

@@ -478,6 +478,15 @@
     <h2 class="section-title" data-field="dateSectionTitle">الموعد</h2>
     <p class="section-subtitle" data-field="dateSectionSubtitle">امسح لتكتشف التاريخ</p>
 
+    <!-- Small "scratch again" reset button (see resetScratchCards() in the
+         JS) — re-coats every scratch card so a guest who's already
+         revealed the date can play again, or so it doesn't stay
+         permanently scratched for the next person looking over their
+         shoulder. -->
+    <button type="button" id="scratch-reset-btn" class="scratch-reset-btn" aria-label="اعادة تغطية البطاقات لتخدشها من جديد / Re-cover the cards to scratch again">
+      <svg class="scratch-reset-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-refresh"></use></svg>
+    </button>
+
     <div class="scratch-cards">
       <div class="scratch-card">
         <div class="scratch-face">
@@ -1106,6 +1115,18 @@
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
     </symbol>
 
+    <!-- Small circular double-arrow "reset scratch cards" icon — the
+         classic refresh glyph (two opposing arcs, each ending in an
+         arrowhead), matching the same line-art convention every other
+         icon in this file uses (see the shared fill:none/stroke:currentColor
+         rule in the CSS, which this id is added to). -->
+    <symbol id="icon-refresh" viewBox="0 0 24 24">
+      <path d="M4 12a8 8 0 0 1 14.93-4" fill="none" />
+      <polyline points="19 3 19 8 14 8" />
+      <path d="M20 12a8 8 0 0 1-14.93 4" fill="none" />
+      <polyline points="5 21 5 16 10 16" />
+    </symbol>
+
     <!-- Lightbox icons -->
     <symbol id="icon-close" viewBox="0 0 24 24">
       <line x1="18" y1="6" x2="6" y2="18" />
@@ -1188,6 +1209,17 @@
      which LeensWeddingInvitation.js's RSVP form calls on Confirm. Loading
      it here as a module script keeps the credentials/Firebase-specific
      code in that one file, separate from the classic script below. -->
+<!-- Ambient falling petals: a fixed full-viewport canvas overlay, purely
+     decorative (aria-hidden; pointer-events: none in the CSS) — see
+     initPetals() in the JS. Placed here, as the LAST direct child of
+     <body>, deliberately: position: fixed is trapped to the nearest
+     ancestor that has its own transform/filter/perspective/will-change
+     rather than the true viewport, and several elements elsewhere on
+     this page already have one of those (#envelope-screen's own
+     perspective, for instance) — so this can't be nested inside any of
+     them, only a sibling of everything at the top level. -->
+<canvas id="petal-canvas" aria-hidden="true"></canvas>
+
 <script type="module" src="firebase-config.js"></script>
 <script src="LeensWeddingInvitation.js"></script>
 </body>
