@@ -618,8 +618,23 @@ function setupScratchCard(canvas) {
     }
   }
 
+  // BUG FIX: this used to run its full reset (repaint the coating, clear
+  // any scratched progress, drop the "is-cleared" state) on every single
+  // "resize" event, no matter what. On mobile, scrolling shows/hides the
+  // browser's own address bar, which changes the visual viewport height
+  // and fires a real "resize" event on window — even though the card's
+  // own on-page size never actually changed. That's what guests were
+  // hitting: scratch progress wiped out by scrolling, not by any actual
+  // resize. Now it bails out early unless the card's rendered size
+  // (from getBoundingClientRect(), compared against what it was sized to
+  // last time) has genuinely changed — a real resize (rotating the
+  // device, a desktop window resize) still re-sizes and repaints
+  // correctly; a same-size "resize" event now does nothing. Sub-pixel
+  // tolerance (0.5px) absorbs float jitter between two reads of the same
+  // layout rather than treating that as a "real" resize.
   function sizeCanvas() {
     const rect = canvas.getBoundingClientRect();
+    if (Math.abs(rect.width - width) < 0.5 && Math.abs(rect.height - height) < 0.5) return;
     width = rect.width;
     height = rect.height;
     canvas.width = width * dpr;

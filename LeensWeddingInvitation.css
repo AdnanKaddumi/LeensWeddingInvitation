@@ -502,8 +502,29 @@ svg use, svg path, svg line, svg ellipse, svg circle, svg rect {
   /* Establishes the 3D viewing context for the flap+seal's rotateX fold
      below — perspective-origin: center top keeps the vanishing point
      right at the flap's hinge, so the fold reads as a real physical
-     rotation around that top edge rather than a generic 3D wobble. */
-  perspective: 1500px;
+     rotation around that top edge rather than a generic 3D wobble.
+     BUG FIX: 1500px -> 4000px. Reported symptom: on a phone, the flap
+     "suddenly looks bigger" partway through opening, then continues.
+     The flap now rotates TOWARD the viewer (rotateX(180deg), a deliberate
+     choice made earlier over the alternative -180deg that recedes away —
+     see .flap-top's own .open comment below), and its hinge-to-tip length
+     is roughly 60-70% of the screen's height (~550-600px on a typical
+     phone). At only 1500px perspective, swinging something that long
+     toward the camera shrinks its distance to the viewer by nearly 40%
+     at the fold's midpoint — under CSS's perspective projection, apparent
+     size scales with 1/distance, so that same 40% distance drop reads as
+     roughly a 60% jump in size, right in the middle of the animation.
+     That's the "suddenly bigger" moment. This is inherent to rotating
+     TOWARD the viewer specifically (rotating away, the previous
+     direction, never has this problem — increasing distance from the
+     viewer only ever shrinks something further, gently and
+     monotonically, never inflates it). Moving the perspective plane much
+     farther back doesn't change the fold's own geometry or timing at
+     all, only how strongly that geometry gets exaggerated by the
+     projection — at 4000px, the same swing changes apparent size by
+     roughly 15-20% instead of ~60%, which should read as a normal part
+     of the fold's dimensionality rather than a jarring jump. */
+  perspective: 4000px;
   perspective-origin: center top;
 
   /* FIX #3 (this pass): outer rectangle corners go back to sharp/square
