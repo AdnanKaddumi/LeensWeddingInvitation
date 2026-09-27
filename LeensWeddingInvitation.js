@@ -21,27 +21,18 @@ const INVITE_CONTENT = {
   envelopeScript: "دعوة زفاف",
   tapHint: "اضغط للفتح",
 
-  // Qur'anic verse + formal family invitation page
+  prayerText: "اللهم بارك لهما وبارك عليهما واجمع بينهما في خير",
+  sentimentText: "بمشاعر مليئة بالفرح والسعادة ولأن الفرحة لا تكتمل إلا بوجودكم",
   verseLeadText: "يتشرف",
-  basmala: "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
-  verseText: "وَمِنْ آيَاتِهِ أَنْ خَلَقَ لَكُم مِّنْ أَنفُسِكُمْ أَزْوَاجًا لِّتَسْكُنُوا إِلَيْهَا وَجَعَلَ بَيْنَكُم مَّوَدَّةً وَرَحْمَةً",
-  verseReference: "سورة الروم، الآية ٢١",
-  // Family names, split into two mirrored columns (see .family-columns) —
-  // bride's family first so it lands on the right under RTL.
-  brideFamilyName: "السيد أحمد عبدالله الخطيب",
-  brideFamilyConsort: "وحرمه جيهان",
   groomFamilyName: "الدكتور ماهر سلامة",
-  groomFamilyConsort: "وحرمه منال",
-  // Exact wording as given — do not paraphrase. "كريمتهم/كريمهم" (their
-  // honored daughter/son) used rather than "نجلتهم/نجلهم" as the more
-  // conventional, grammatically natural phrasing for formal Arabic
-  // wedding invitations.
-  formalInvitationText: "بدعوتكم لحضور حفل زفاف كريمتهم الدكتورة لين وكريمهم المهندس طارق سلامة",
-
-  // Hero
+  groomFamilyConsort: "و العائلة",
+  brideFamilyName: "الدكتور أحمد الخطيب",
+  brideFamilyConsort: "و العائلة",
+  formalInvitationText: "بدعوتكم لحضور زفاف ولديهما",
   groomName: "طارق",
   heroNamesConnector: "و",
   brideName: "لين",
+  timeText: "الساعة السابعة مساءً",
 
  
 
@@ -121,7 +112,10 @@ function applyContent(content) {
 const TRANSLATIONS = {
   envelopeScript: { ar: "دعوة زفاف", en: "Wedding Invitation" },
   tapHint: { ar: "اضغط للفتح", en: "Tap to Open" },
+envelopeScript: { ar: "دعوة زفاف", en: "Wedding Invitation" },
+  tapHint: { ar: "اضغط للفتح", en: "Tap to Open" },
 
+  dateSectionTitle: { ar: "الموعد", en: "The Date" },
   dateSectionTitle: { ar: "الموعد", en: "The Date" },
   dateSectionSubtitle: { ar: "امسح لتكتشف التاريخ", en: "Scratch to reveal the date" },
   dayLabel: { ar: "اليوم", en: "Day" },
@@ -748,16 +742,72 @@ function setupScratchCard(canvas) {
   let rafScheduled = false;
 
   function paintCoating() {
+    // Color-unification pass: was an olive-green gradient (#b28d51 ->
+    // #8b9873 -> #57633f) that read as a completely different material
+    // than the frame illustrations' gold border lines/botanical linework.
+    // Now a warm gold/champagne foil — same family as --color-gold-
+    // hairline/--color-bronze-deep used everywhere else on the page —
+    // still unmistakably "a coating to scratch off," just in metal
+    // instead of green.
     const gradient = ctx.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, "#b28d51");
-    gradient.addColorStop(0.5, "#8b9873");
-    gradient.addColorStop(1, "#57633f");
+    gradient.addColorStop(0, "#f3dfa8");
+    gradient.addColorStop(0.3, "#d9b872");
+    gradient.addColorStop(0.6, "#b8925a");
+    gradient.addColorStop(1, "#8c6a3e");
     ctx.globalCompositeOperation = "source-over";
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
+    // Professional-upgrade pass: this canvas (not the CSS box behind it —
+    // see .scratch-face's own comment for why that box's fill/shadow can
+    // never actually be seen) is the surface guests actually look at
+    // before scratching, so the "brushed-metal, not flat gradient" ask
+    // has to live here. Same anisotropic-noise idea as --texture-brushed-
+    // gold in the CSS (thin, mostly-horizontal streaks rather than
+    // scattered dots), drawn as a batch of long, thin, low-opacity
+    // strokes at slightly varying y-positions and alpha — real brushed
+    // metal has directional grain, not isotropic noise.
+    ctx.globalCompositeOperation = "overlay";
+    for (let i = 0; i < 90; i++) {
+      const y = Math.random() * height;
+      const alpha = 0.04 + Math.random() * 0.1;
+      ctx.strokeStyle = Math.random() > 0.5 ? `rgba(255,255,255,${alpha})` : `rgba(60,40,15,${alpha})`;
+      ctx.lineWidth = 0.6 + Math.random() * 0.8;
+      ctx.beginPath();
+      const xStart = Math.random() * width * 0.4;
+      ctx.moveTo(xStart, y);
+      ctx.lineTo(xStart + width * (0.3 + Math.random() * 0.5), y + (Math.random() - 0.5) * 3);
+      ctx.stroke();
+    }
+    ctx.globalCompositeOperation = "source-over";
+
+    // A soft diagonal highlight band, like light catching brushed foil
+    const sheen = ctx.createLinearGradient(0, 0, width * 0.6, height * 0.6);
+    sheen.addColorStop(0, "rgba(255,255,255,0.28)");
+    sheen.addColorStop(0.35, "rgba(255,255,255,0.05)");
+    sheen.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = sheen;
+    ctx.fillRect(0, 0, width, height);
+
+    // Crisp top-edge highlight + soft bottom-edge shadow, so the coating
+    // reads as a real dimensional surface (a raised metal disc) rather
+    // than a flat rectangle of gradient — the same "real dimension"
+    // treatment .countdown-unit gets via box-shadow, reproduced here
+    // since box-shadow isn't available on a canvas.
+    const edgeH = Math.max(3, height * 0.06);
+    const topEdge = ctx.createLinearGradient(0, 0, 0, edgeH);
+    topEdge.addColorStop(0, "rgba(255,252,235,0.55)");
+    topEdge.addColorStop(1, "rgba(255,252,235,0)");
+    ctx.fillStyle = topEdge;
+    ctx.fillRect(0, 0, width, edgeH);
+    const bottomEdge = ctx.createLinearGradient(0, height - edgeH, 0, height);
+    bottomEdge.addColorStop(0, "rgba(45,30,10,0)");
+    bottomEdge.addColorStop(1, "rgba(45,30,10,0.3)");
+    ctx.fillStyle = bottomEdge;
+    ctx.fillRect(0, height - edgeH, width, edgeH);
+
     // Faint grain so the coating doesn't read as a flat sticker
-    ctx.fillStyle = "rgba(255,255,255,0.07)";
+    ctx.fillStyle = "rgba(255,255,255,0.1)";
     for (let i = 0; i < 50; i++) {
       ctx.beginPath();
       ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 1.4, 0, Math.PI * 2);
@@ -1124,11 +1174,16 @@ function currentPetalThemeKey() {
 // petal landing in that tier: small/medium do the bulk of the work,
 // large stays a deliberately occasional accent (per request, "keep the
 // large-petal proportion modest").
+// SIZE-UP pass (visual parameters only — spawn timing/physics untouched
+// below carries its own comment): spriteSize per tier x1.5 (small 9->14,
+// medium 14->21, large 22->33), the middle of the requested 1.4-1.6x
+// range. vy/opacity/driftAmp/driftFreq/rotationSpeed/windSensitivity are
+// physics/feel, not size, and are byte-for-byte unchanged.
 const PETAL_TIERS = [
   {
     name: "small",
     weight: 0.4,
-    spriteSize: 9,
+    spriteSize: 14,
     vy: [12, 19],
     opacity: [0.26, 0.4],
     driftAmp: [7, 15],
@@ -1139,7 +1194,7 @@ const PETAL_TIERS = [
   {
     name: "medium",
     weight: 0.4,
-    spriteSize: 14,
+    spriteSize: 21,
     vy: [18, 27],
     opacity: [0.42, 0.6],
     driftAmp: [13, 25],
@@ -1150,7 +1205,7 @@ const PETAL_TIERS = [
   {
     name: "large",
     weight: 0.2,
-    spriteSize: 22,
+    spriteSize: 33,
     vy: [24, 35],
     opacity: [0.6, 0.85],
     driftAmp: [19, 34],
@@ -1160,17 +1215,22 @@ const PETAL_TIERS = [
   },
 ];
 
-// DENSITY (increased per request): cap 18 -> 36, ambient interval roughly
-// 2.5x faster, release burst and scroll burst both scaled up to match —
-// re-measured actual on-screen count and frame rate afterward at this
-// new density (see the test report), rather than assuming the increase
-// was performance-neutral.
-const PETAL_MAX_COUNT = 36;
-const PETAL_AMBIENT_INTERVAL_MS = [450, 800]; // range: ms between ambient spawns
-const PETAL_RELEASE_BURST = 14;
-const PETAL_SCROLL_BURST_MAX = 8;
+// DENSITY (increased per request, again — see the "cap 18 -> 36" comment
+// this replaces, from an earlier density pass): cap 36 -> 60 (+67%,
+// inside the requested 60-80% range), ambient interval shortened by the
+// same 1.67x factor (450-800ms -> 270-480ms) so the higher cap is
+// actually reached and sustained rather than just raised as an unused
+// ceiling, release/scroll burst sizes scaled up to match. Re-measured
+// frame rate on a mid-range mobile viewport after this change
+// specifically (see the test report) — physics/timing formulas
+// themselves (wind field, tumble, fade curves) are untouched, only these
+// count/rate constants moved.
+const PETAL_MAX_COUNT = 60;
+const PETAL_AMBIENT_INTERVAL_MS = [270, 480]; // range: ms between ambient spawns
+const PETAL_RELEASE_BURST = 23;
+const PETAL_SCROLL_BURST_MAX = 13;
 const PETAL_SCROLL_THROTTLE_MS = 150;
-const PETAL_STATIC_COUNT = 10; // prefers-reduced-motion: a few still petals, scaled with the density bump
+const PETAL_STATIC_COUNT = 16; // prefers-reduced-motion: a few still petals, scaled with the density bump above
 
 // module-scoped, assigned by initPetals() below, called by finishReveal()
 // in initEnvelope() — see this section's own header comment.
@@ -1223,7 +1283,16 @@ function lightAngleOffsetVector() {
 // separately "disappears first" the way a fixed-opacity CSS
 // box-shadow/filter applied at runtime could.
 function buildPetalSprites() {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  // Performance pass (size/count increase): sprite raster DPR cap
+  // lowered 2 -> 1.5. Sprites are built once and reused every frame via
+  // drawImage(), so this doesn't touch the per-frame animation cost
+  // directly — but at the new higher on-screen count, GPU texture
+  // upload/sampling for these small sprites is measurably cheaper at a
+  // smaller source resolution, and the visual difference is not
+  // perceptible at petal scale even on a retina screen. Tried first,
+  // per instruction, before considering trimming the new count/size back
+  // down.
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
   const path = new Path2D(PETAL_PATH_D);
   const themes = { dark: PETAL_COLOR_DARK, light: PETAL_COLOR_LIGHT };
   const sprites = {};

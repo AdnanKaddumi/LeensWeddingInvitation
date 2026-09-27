@@ -92,257 +92,10 @@
        --apex-y down to the bottom edge, same width as the envelope. -->
   <div class="envelope-body" aria-hidden="true"></div>
 
-  <!-- Olive branch + candle clusters at both bottom corners, echoing the
-       invitation's own botanical language (see .envelope-botanicals in
-       the CSS) — varied-height candles with the sitewide flame-flicker,
-       a scatter of small white blooms for depth. Static (don't move with
-       the flap), sitting on the bottom panel. -->
-  <div class="envelope-botanicals envelope-botanicals--left" aria-hidden="true">
-    <svg class="botanical-branch" viewBox="0 0 200 100"><use href="#motif-olive-branch" width="200" height="100"></use></svg>
-    <!-- ENRICHED (this pass, visual only): one extra shorter sprig,
-         reusing the existing eucalyptus-sprig motif for a varied
-         length/direction alongside the main branch above.
-         --sway-delay (idle-life pass): staggers this instance's internal
-         leaf-sway (see #motif-eucalyptus-sprig) independently from the
-         right corner's sprig below and from every other sitewide reuse
-         of this same symbol, which all keep the default -2.1s. -->
-    <svg class="botanical-sprig" viewBox="0 0 140 140" style="--sway-delay: -0.8s"><use href="#motif-eucalyptus-sprig" width="140" height="140"></use></svg>
-    <!-- Candle glow pass: these 3 corner candles are now INLINED (the
-         actual path/rect/line shapes, not <use href="#motif-candle">)
-         instead of referencing the shared symbol — GSAP (see
-         initCandleGlow() in the JS) needs to reach each .candle-flame
-         directly via document.querySelectorAll, and elements only
-         reachable through an SVG <use>'s cloned shadow content are NOT
-         selectable from JS that way (confirmed by direct testing: 0 of
-         these .candle-flame nodes are reachable, 1 was hit for other
-         reasons); only CSS can style into that shadow content, not
-         document.querySelectorAll(). The 2 candles elsewhere on the page
-         (countdown/closing sections) still use the shared symbol
-         untouched, still animated by the original CSS
-         #motif-candle .candle-flame flicker — nothing about them
-         changed. Each candle is wrapped in a .candle-wrap (carries the
-         position/height this used to live on .botanical-candle itself)
-         alongside a new .candle-glow-halo sibling — a soft, much-larger
-         warm blur meant to bleed into the fabric around it via
-         mix-blend-mode:screen (see the CSS), not confined to the
-         candle's own narrow SVG box the way the small in-icon
-         #flame-glow circle already was. -->
-    <div class="candle-wrap candle-wrap--tall">
-      <span class="candle-glow-halo"></span>
-      <svg class="botanical-candle" viewBox="0 0 30 90" aria-hidden="true">
-        <circle cx="15" cy="13" r="15" fill="url(#flame-glow)" />
-        <line class="candle-wick" x1="15" y1="26" x2="15" y2="17" />
-        <!-- Static layout transform (position/scale only, never touched
-             by GSAP) wrapping the actual animated flame group — GSAP
-             writes its own transform onto .candle-flame directly, so
-             that group can't ALSO carry this static placement transform
-             without GSAP clobbering it every tick.
-             SIZING FIX (this pass): scale raised 0.42 -> 0.8 so the
-             flame renders at ~30% of the candle's own height (was
-             ~16%, too small at the site's actual rendered width) — the
-             flame SVG's native 20x34 box times 0.8 gives a ~27-unit-tall
-             flame in this candle's shared 90-unit-tall viewBox, 27/90 =
-             30%. translate recomputed so the flame's own base (local
-             10,34) still lands at the same (15,20) point near the wick
-             it always has: 15-10*0.8=7, 20-34*0.8=-7.2 (see
-             .botanical-candle's own overflow:visible in the CSS — the
-             taller flame's tip now pokes above this SVG's nominal y=0
-             top edge, which needs that to not get clipped). -->
-        <g transform="translate(7, -7.2) scale(0.8)">
-          <g class="candle-flame">
-            <path d="M10,0 C4,10 0,16 0,22 C0,29 5,34 10,34 C15,34 20,29 20,22 C20,16 16,10 10,0 Z" fill="url(#flame-outer-gradient)" />
-            <path d="M10,10 C7,15 5,19 5,23 C5,27.5 7,30 10,30 C13,30 15,27.5 15,23 C15,19 13,15 10,10 Z" fill="url(#flame-inner-gradient)" />
-          </g>
-        </g>
-        <rect class="candle-body" x="7" y="26" width="16" height="58" rx="7" />
-        <line class="candle-detail" x1="7" y1="36" x2="23" y2="36" />
-      </svg>
-    </div>
-    <div class="candle-wrap candle-wrap--short">
-      <span class="candle-glow-halo"></span>
-      <svg class="botanical-candle" viewBox="0 0 30 90" aria-hidden="true">
-        <circle cx="15" cy="13" r="15" fill="url(#flame-glow)" />
-        <line class="candle-wick" x1="15" y1="26" x2="15" y2="17" />
-        <!-- Static layout transform (position/scale only, never touched
-             by GSAP) wrapping the actual animated flame group — GSAP
-             writes its own transform onto .candle-flame directly, so
-             that group can't ALSO carry this static placement transform
-             without GSAP clobbering it every tick.
-             SIZING FIX (this pass): scale raised 0.42 -> 0.8 so the
-             flame renders at ~30% of the candle's own height (was
-             ~16%, too small at the site's actual rendered width) — the
-             flame SVG's native 20x34 box times 0.8 gives a ~27-unit-tall
-             flame in this candle's shared 90-unit-tall viewBox, 27/90 =
-             30%. translate recomputed so the flame's own base (local
-             10,34) still lands at the same (15,20) point near the wick
-             it always has: 15-10*0.8=7, 20-34*0.8=-7.2 (see
-             .botanical-candle's own overflow:visible in the CSS — the
-             taller flame's tip now pokes above this SVG's nominal y=0
-             top edge, which needs that to not get clipped). -->
-        <g transform="translate(7, -7.2) scale(0.8)">
-          <g class="candle-flame">
-            <path d="M10,0 C4,10 0,16 0,22 C0,29 5,34 10,34 C15,34 20,29 20,22 C20,16 16,10 10,0 Z" fill="url(#flame-outer-gradient)" />
-            <path d="M10,10 C7,15 5,19 5,23 C5,27.5 7,30 10,30 C13,30 15,27.5 15,23 C15,19 13,15 10,10 Z" fill="url(#flame-inner-gradient)" />
-          </g>
-        </g>
-        <rect class="candle-body" x="7" y="26" width="16" height="58" rx="7" />
-        <line class="candle-detail" x1="7" y1="36" x2="23" y2="36" />
-      </svg>
-    </div>
-    <!-- ENRICHED: one extra candle, same flicker/glow technique as the
-         other two, varied height. -->
-    <div class="candle-wrap candle-wrap--mid">
-      <span class="candle-glow-halo"></span>
-      <svg class="botanical-candle" viewBox="0 0 30 90" aria-hidden="true">
-        <circle cx="15" cy="13" r="15" fill="url(#flame-glow)" />
-        <line class="candle-wick" x1="15" y1="26" x2="15" y2="17" />
-        <!-- Static layout transform (position/scale only, never touched
-             by GSAP) wrapping the actual animated flame group — GSAP
-             writes its own transform onto .candle-flame directly, so
-             that group can't ALSO carry this static placement transform
-             without GSAP clobbering it every tick.
-             SIZING FIX (this pass): scale raised 0.42 -> 0.8 so the
-             flame renders at ~30% of the candle's own height (was
-             ~16%, too small at the site's actual rendered width) — the
-             flame SVG's native 20x34 box times 0.8 gives a ~27-unit-tall
-             flame in this candle's shared 90-unit-tall viewBox, 27/90 =
-             30%. translate recomputed so the flame's own base (local
-             10,34) still lands at the same (15,20) point near the wick
-             it always has: 15-10*0.8=7, 20-34*0.8=-7.2 (see
-             .botanical-candle's own overflow:visible in the CSS — the
-             taller flame's tip now pokes above this SVG's nominal y=0
-             top edge, which needs that to not get clipped). -->
-        <g transform="translate(7, -7.2) scale(0.8)">
-          <g class="candle-flame">
-            <path d="M10,0 C4,10 0,16 0,22 C0,29 5,34 10,34 C15,34 20,29 20,22 C20,16 16,10 10,0 Z" fill="url(#flame-outer-gradient)" />
-            <path d="M10,10 C7,15 5,19 5,23 C5,27.5 7,30 10,30 C13,30 15,27.5 15,23 C15,19 13,15 10,10 Z" fill="url(#flame-inner-gradient)" />
-          </g>
-        </g>
-        <rect class="candle-body" x="7" y="26" width="16" height="58" rx="7" />
-        <line class="candle-detail" x1="7" y1="36" x2="23" y2="36" />
-      </svg>
-    </div>
-    <!-- leaf-sway (idle-life pass): reuses the exact same class/keyframe
-         the eucalyptus sprig's own leaves already use elsewhere on this
-         page — same restrained ±0-3deg rotate, same 5.5s ease-in-out
-         loop — applied here directly to the whole bloom instance (safe:
-         nothing else inside #motif-bloom already animates, so there's no
-         double-transform to conflict with), each on its own staggered
-         delay. -->
-    <svg class="botanical-bloom botanical-bloom--1 leaf-sway" viewBox="0 0 40 40" style="animation-delay: -1.4s"><use href="#motif-bloom" width="40" height="40"></use></svg>
-    <svg class="botanical-bloom botanical-bloom--2 leaf-sway" viewBox="0 0 40 40" style="animation-delay: -3.6s"><use href="#motif-bloom" width="40" height="40"></use></svg>
-    <!-- ENRICHED: one extra bloom, asymmetrically placed. -->
-    <svg class="botanical-bloom botanical-bloom--3 leaf-sway" viewBox="0 0 40 40" style="animation-delay: -0.2s"><use href="#motif-bloom" width="40" height="40"></use></svg>
-    <!-- Ambient light motes (idle-life pass): see .ambient-mote in the
-         CSS — small, few, faint on purpose. Positioned near the three
-         candle flames above. -->
-    <span class="ambient-mote" style="left: 56%; bottom: 24%; --mote-delay: -0.5s; --mote-duration: 6.4s"></span>
-    <span class="ambient-mote" style="left: 71%; bottom: 16%; --mote-delay: -3.1s; --mote-duration: 7.8s"></span>
-    <span class="ambient-mote" style="left: 84%; bottom: 20%; --mote-delay: -5.6s; --mote-duration: 6.9s"></span>
-  </div>
-  <div class="envelope-botanicals envelope-botanicals--right" aria-hidden="true">
-    <svg class="botanical-branch" viewBox="0 0 200 100"><use href="#motif-olive-branch" width="200" height="100"></use></svg>
-    <svg class="botanical-sprig" viewBox="0 0 140 140" style="--sway-delay: -4.3s"><use href="#motif-eucalyptus-sprig" width="140" height="140"></use></svg>
-    <div class="candle-wrap candle-wrap--short">
-      <span class="candle-glow-halo"></span>
-      <svg class="botanical-candle" viewBox="0 0 30 90" aria-hidden="true">
-        <circle cx="15" cy="13" r="15" fill="url(#flame-glow)" />
-        <line class="candle-wick" x1="15" y1="26" x2="15" y2="17" />
-        <!-- Static layout transform (position/scale only, never touched
-             by GSAP) wrapping the actual animated flame group — GSAP
-             writes its own transform onto .candle-flame directly, so
-             that group can't ALSO carry this static placement transform
-             without GSAP clobbering it every tick.
-             SIZING FIX (this pass): scale raised 0.42 -> 0.8 so the
-             flame renders at ~30% of the candle's own height (was
-             ~16%, too small at the site's actual rendered width) — the
-             flame SVG's native 20x34 box times 0.8 gives a ~27-unit-tall
-             flame in this candle's shared 90-unit-tall viewBox, 27/90 =
-             30%. translate recomputed so the flame's own base (local
-             10,34) still lands at the same (15,20) point near the wick
-             it always has: 15-10*0.8=7, 20-34*0.8=-7.2 (see
-             .botanical-candle's own overflow:visible in the CSS — the
-             taller flame's tip now pokes above this SVG's nominal y=0
-             top edge, which needs that to not get clipped). -->
-        <g transform="translate(7, -7.2) scale(0.8)">
-          <g class="candle-flame">
-            <path d="M10,0 C4,10 0,16 0,22 C0,29 5,34 10,34 C15,34 20,29 20,22 C20,16 16,10 10,0 Z" fill="url(#flame-outer-gradient)" />
-            <path d="M10,10 C7,15 5,19 5,23 C5,27.5 7,30 10,30 C13,30 15,27.5 15,23 C15,19 13,15 10,10 Z" fill="url(#flame-inner-gradient)" />
-          </g>
-        </g>
-        <rect class="candle-body" x="7" y="26" width="16" height="58" rx="7" />
-        <line class="candle-detail" x1="7" y1="36" x2="23" y2="36" />
-      </svg>
-    </div>
-    <div class="candle-wrap candle-wrap--tall">
-      <span class="candle-glow-halo"></span>
-      <svg class="botanical-candle" viewBox="0 0 30 90" aria-hidden="true">
-        <circle cx="15" cy="13" r="15" fill="url(#flame-glow)" />
-        <line class="candle-wick" x1="15" y1="26" x2="15" y2="17" />
-        <!-- Static layout transform (position/scale only, never touched
-             by GSAP) wrapping the actual animated flame group — GSAP
-             writes its own transform onto .candle-flame directly, so
-             that group can't ALSO carry this static placement transform
-             without GSAP clobbering it every tick.
-             SIZING FIX (this pass): scale raised 0.42 -> 0.8 so the
-             flame renders at ~30% of the candle's own height (was
-             ~16%, too small at the site's actual rendered width) — the
-             flame SVG's native 20x34 box times 0.8 gives a ~27-unit-tall
-             flame in this candle's shared 90-unit-tall viewBox, 27/90 =
-             30%. translate recomputed so the flame's own base (local
-             10,34) still lands at the same (15,20) point near the wick
-             it always has: 15-10*0.8=7, 20-34*0.8=-7.2 (see
-             .botanical-candle's own overflow:visible in the CSS — the
-             taller flame's tip now pokes above this SVG's nominal y=0
-             top edge, which needs that to not get clipped). -->
-        <g transform="translate(7, -7.2) scale(0.8)">
-          <g class="candle-flame">
-            <path d="M10,0 C4,10 0,16 0,22 C0,29 5,34 10,34 C15,34 20,29 20,22 C20,16 16,10 10,0 Z" fill="url(#flame-outer-gradient)" />
-            <path d="M10,10 C7,15 5,19 5,23 C5,27.5 7,30 10,30 C13,30 15,27.5 15,23 C15,19 13,15 10,10 Z" fill="url(#flame-inner-gradient)" />
-          </g>
-        </g>
-        <rect class="candle-body" x="7" y="26" width="16" height="58" rx="7" />
-        <line class="candle-detail" x1="7" y1="36" x2="23" y2="36" />
-      </svg>
-    </div>
-    <div class="candle-wrap candle-wrap--mid">
-      <span class="candle-glow-halo"></span>
-      <svg class="botanical-candle" viewBox="0 0 30 90" aria-hidden="true">
-        <circle cx="15" cy="13" r="15" fill="url(#flame-glow)" />
-        <line class="candle-wick" x1="15" y1="26" x2="15" y2="17" />
-        <!-- Static layout transform (position/scale only, never touched
-             by GSAP) wrapping the actual animated flame group — GSAP
-             writes its own transform onto .candle-flame directly, so
-             that group can't ALSO carry this static placement transform
-             without GSAP clobbering it every tick.
-             SIZING FIX (this pass): scale raised 0.42 -> 0.8 so the
-             flame renders at ~30% of the candle's own height (was
-             ~16%, too small at the site's actual rendered width) — the
-             flame SVG's native 20x34 box times 0.8 gives a ~27-unit-tall
-             flame in this candle's shared 90-unit-tall viewBox, 27/90 =
-             30%. translate recomputed so the flame's own base (local
-             10,34) still lands at the same (15,20) point near the wick
-             it always has: 15-10*0.8=7, 20-34*0.8=-7.2 (see
-             .botanical-candle's own overflow:visible in the CSS — the
-             taller flame's tip now pokes above this SVG's nominal y=0
-             top edge, which needs that to not get clipped). -->
-        <g transform="translate(7, -7.2) scale(0.8)">
-          <g class="candle-flame">
-            <path d="M10,0 C4,10 0,16 0,22 C0,29 5,34 10,34 C15,34 20,29 20,22 C20,16 16,10 10,0 Z" fill="url(#flame-outer-gradient)" />
-            <path d="M10,10 C7,15 5,19 5,23 C5,27.5 7,30 10,30 C13,30 15,27.5 15,23 C15,19 13,15 10,10 Z" fill="url(#flame-inner-gradient)" />
-          </g>
-        </g>
-        <rect class="candle-body" x="7" y="26" width="16" height="58" rx="7" />
-        <line class="candle-detail" x1="7" y1="36" x2="23" y2="36" />
-      </svg>
-    </div>
-    <svg class="botanical-bloom botanical-bloom--1 leaf-sway" viewBox="0 0 40 40" style="animation-delay: -2.8s"><use href="#motif-bloom" width="40" height="40"></use></svg>
-    <svg class="botanical-bloom botanical-bloom--2 leaf-sway" viewBox="0 0 40 40" style="animation-delay: -4.9s"><use href="#motif-bloom" width="40" height="40"></use></svg>
-    <svg class="botanical-bloom botanical-bloom--3 leaf-sway" viewBox="0 0 40 40" style="animation-delay: -1.7s"><use href="#motif-bloom" width="40" height="40"></use></svg>
-    <span class="ambient-mote" style="left: 60%; bottom: 18%; --mote-delay: -2.3s; --mote-duration: 7.2s"></span>
-    <span class="ambient-mote" style="left: 74%; bottom: 26%; --mote-delay: -4.8s; --mote-duration: 6.6s"></span>
-    <span class="ambient-mote" style="left: 88%; bottom: 15%; --mote-delay: -1.1s; --mote-duration: 7.5s"></span>
-  </div>
+  <!-- REMOVED (per request, both corners): the olive branch/sprig/bloom
+       clusters that used to sit at both bottom corners of the envelope
+       body (see .envelope-botanicals in the CSS, left in place as
+       harmless unused styles). -->
 
   <!-- REMOVED (this pass): the full-width horizontal seam line. With a
        real triangular flap, the body is only visible in the two side
@@ -360,6 +113,16 @@
        now unhides #invitation from the start of the tap) shows through
        it directly, rather than a stand-in color. -->
   <div class="envelope-wedges" aria-hidden="true"></div>
+
+  <!-- Elevation pass (section 1): full-surface tonal emboss for the
+       body/wedges portion of the envelope (the flap has its own two
+       instances, see .flap-face--front) — same #motif-emboss-sprig
+       technique. Placed after .envelope-wedges (so it sits above the
+       plain body/wedge color) but before .envelope-sheen (so the shared
+       sheen/mottle overlay still glazes over it, keeping one consistent
+       material treatment across the whole surface) and well before
+       .flap-top. -->
+
 
   <!-- Bug fix: single shared sheen layer, see .envelope-sheen's own CSS
        comment for why this has to be one element covering the whole
@@ -381,22 +144,18 @@
        rectangle sides. -->
   <div class="flap-top" id="flap-top">
     <div class="flap-face flap-face--front">
-      <!-- REBUILT (design-system pass): the botanical vine centerpiece,
-           built from the reusable leaf/blossom/bud symbols above (see
-           #motif-vine-centerpiece's own comment) instead of the previous
-           one-off inline vine/bloom shapes. -->
-      <!-- BUG FIX: viewBox/use width/height match
-           #motif-vine-centerpiece's own viewBox exactly (see that
-           symbol's own comment) — was mismatched with a previous,
-           differently-proportioned vine at first (300x170), then
-           corrected to 220x150 but not yet widened to 240x170 once the
-           symbol's own viewBox grew that extra margin to stop clipping
-           its outer blossoms. Keeping these three numbers in sync any
-           time the symbol's own viewBox changes is what keeps the vine
-           filling its box at 1:1, neither letterboxed nor clipped. -->
-      <svg class="flap-embroidery" viewBox="0 0 240 170" aria-hidden="true">
-        <use href="#motif-vine-centerpiece" width="240" height="170"></use>
-      </svg>
+      <!-- Elevation pass (section 1): full-surface tonal emboss — see
+           #motif-emboss-sprig's own comment for the technique. Placed
+           BEFORE .flap-embroidery so the colored vine/blossoms paint on
+           top of it, matching "sits below the existing vine arch,
+           blossoms, and seal in z-order." Two large, differently rotated/
+           scaled instances toward the flap's outer edges, away from
+           where the colored vine already reads as the foreground motif. -->
+     
+      <!-- REMOVED (per request): the .flap-embroidery vine/blossom arch
+           (#motif-vine-centerpiece). The symbol definition itself is left
+           in the SVG library further down (harmless unused defs), only
+           this instance is gone. -->
       <!-- Fold-edge catch-light, highlight half (design-system pass): a
            bright line right at the crease — real paper/fabric shows both
            a shadow (see .flap-face--front's filter: drop-shadow in the
@@ -414,8 +173,21 @@
            vector-effect="non-scaling-stroke" keeps the line crisp
            (constant screen-space width) regardless of how much the
            viewBox itself gets scaled up/down. -->
+      <!-- Envelope re-skin pass: this line's stroke is now the gold-to-
+           cream #flap-edge-trim-gradient (was a flat cream rgba()) —
+           the reference's warm trim tracing the fold, folded into the
+           SAME line/element that already did the fold's catch-light
+           highlight rather than adding a second overlapping stroke.
+           Width bumped 1.1 -> 1.6 so the gradient itself reads clearly
+           at typical screen sizes. Geometry/animation untouched. -->
+      <!-- Thick off-white inner envelope lining (shifted up by 5px so it sits beautifully inside the gold rim) -->
+     <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none; top: 4px;" aria-hidden="true">
+        <path d="M2,3 L50,63 L98,3" fill="none" stroke="#EAE2CE" stroke-width="10" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+      </svg>
+
+      <!-- Original thin gold outer trim -->
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;" aria-hidden="true">
-        <path d="M2,3 L50,63 L98,3" fill="none" stroke="rgba(255,252,232,0.65)" stroke-width="1.1" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+        <path d="M2,3 L50,63 L98,3" fill="none" stroke="url(#flap-edge-trim-gradient)" stroke-width="1.6" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
       </svg>
     </div>
     <div class="flap-face flap-face--back"></div>
@@ -549,6 +321,19 @@
   <div class="envelope-caption">
     <p class="envelope-script" data-field="envelopeScript">دعوة زفاف</p>
     <p class="envelope-hint" data-field="tapHint">اضغط للفتح</p>
+    <!-- Elevation pass (section 3): a small olive-laurel flourish beneath
+         the text, built from the same bare vine-leaf silhouette as the
+         emboss field above, embossed rather than colored — no new
+         symbol, no monogram/initials, just two mirrored leaf pairs
+         flanking a short center stem. -->
+    <svg class="caption-laurel" viewBox="0 0 60 16" aria-hidden="true">
+      <path d="M30,8 L18,8" class="emboss-relief" fill="none" />
+      <path d="M30,8 L42,8" class="emboss-relief" fill="none" />
+      <use href="#vine-leaf" x="24" y="8" transform="rotate(-100 24 8) scale(0.8)" class="emboss-relief" />
+      <use href="#vine-leaf" x="18" y="8" transform="rotate(-80 18 8) scale(0.9)" class="emboss-relief" />
+      <use href="#vine-leaf" x="36" y="8" transform="rotate(100 36 8) scale(0.8)" class="emboss-relief" />
+      <use href="#vine-leaf" x="42" y="8" transform="rotate(80 42 8) scale(0.9)" class="emboss-relief" />
+    </svg>
   </div>
 </section>
 
@@ -563,143 +348,154 @@
      adults-only note, and closing. (The "about the couple" section
      from the original spec was removed by request.)
      ====================================================== -->
-<main id="invitation" class="screen invitation" hidden>
+<!-- BUG FIX (background-unification pass): .stone-bg moved OUT of
+     #invitation to be its own top-level sibling instead. #invitation has
+     a `transform` (its entrance translateY/scale animation — see the CSS,
+     it's declared even at rest as scale(1) translateY(0), which still
+     counts) — per the CSS spec, ANY element with a transform value other
+     than none becomes the containing block for its position:fixed
+     descendants. With .stone-bg nested inside #invitation, its
+     "position: fixed; inset: 0" was silently being resolved against
+     #invitation's own (very tall, matches full page content height) box
+     instead of the real viewport — confirmed directly via
+     getBoundingClientRect(), which reported .stone-bg's rect moving with
+     scroll and matching #invitation's ~5500px content height rather than
+     staying pinned to the actual 0/0/innerWidth/innerHeight viewport box
+     a real position:fixed element always reports. The practical result:
+     .stone-bg only ever covered #invitation's own box, not the true
+     viewport — anywhere outside that exact box (past its bottom edge
+     once scrolled to the end, and along both its side margins) fell
+     through to bare, unstyled <html>, which has no background of its own
+     — exactly the "different color at the sides/top/bottom" seam
+     reported, and reproducible at any scroll position since the broken
+     containment was permanent, not a one-off timing artifact like the
+     earlier envelope-fade-out false alarm. Moving this element outside
+     #invitation entirely (a true sibling, both direct children of
+     <body>) removes it from that broken containing block and restores
+     real viewport-fixed behavior. -->
+<div class="stone-bg" aria-hidden="true"></div>
 
-  <!-- Warm travertine/stone paper texture, sits behind every section -->
-  <div class="stone-bg" aria-hidden="true"></div>
+<main id="invitation" class="screen invitation" hidden>
 
   <!-- ---------- Qur'anic verse + formal family invitation ----------
        First thing guests see once the envelope opens. Spacious and
        centered on purpose — this page is meant to be read slowly. -->
-  <section class="section verse-section" data-reveal>
-    <!-- Second botanical corner accent, top-right — balances the existing
-         bottom-left one (see .corner-motif--verse below) and fills what
-         was previously bare space in the page's upper area. Skips the
-         scaleX mirror the bottom one uses since the sprig's own stem
-         already runs top-right to bottom-left in its native orientation,
-         which is exactly the direction wanted growing out of this corner. -->
-    <div class="corner-motif corner-motif--verse-top" aria-hidden="true">
-      <svg class="corner-motif-branch" viewBox="0 0 140 140"><use href="#motif-eucalyptus-sprig"></use></svg>
-      <svg class="corner-motif-bloom corner-motif-bloom--verse-top-1" viewBox="0 0 40 40"><use href="#motif-bloom"></use></svg>
-      <svg class="corner-motif-bloom corner-motif-bloom--verse-top-2" viewBox="0 0 40 40"><use href="#motif-bloom"></use></svg>
-    </div>
+<!-- ---------- First Section: Unified Intro & Invitation ---------- -->
+  <section class="section flex-card verse-section" data-reveal>
+    <!-- ADDED (per reference image): prominent top-left / bottom-right
+         corner floral branches, using the existing olive-branch-sprig.png
+         decor asset (from assets/images/decor/) rather than a new one —
+         sized larger than the small/subtle corner accents used on other
+         sections, to match the bolder corner presence in the reference. -->
+    <img class="decor-corner-sprig decor-corner-sprig--tl" src="assets/images/decor/olive-branch-sprig.png" alt="" aria-hidden="true" loading="eager" decoding="async" style="width: 20%; max-width: 100px; opacity: 1; top: 0.25rem; left: 0.25rem;">
+    <img class="decor-corner-sprig decor-corner-sprig--br" src="assets/images/decor/olive-branch-sprig.png" alt="" aria-hidden="true" loading="eager" decoding="async" style="width: 20%; max-width: 100px; opacity: 1; bottom: 0.25rem; right: 0.25rem;">
 
-    <p class="basmala" data-field="basmala" lang="ar">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
-
-    <blockquote class="verse-text" data-field="verseText" lang="ar">
-      وَمِنْ آيَاتِهِ أَنْ خَلَقَ لَكُم مِّنْ أَنفُسِكُمْ أَزْوَاجًا لِّتَسْكُنُوا إِلَيْهَا وَجَعَلَ بَيْنَكُم مَّوَدَّةً وَرَحْمَةً
-    </blockquote>
-    <p class="verse-reference" data-field="verseReference">سورة الروم، الآية ٢١</p>
-
-    <!-- REMOVED (this pass): the olive divider that used to sit here —
-         it visibly cut across the verse text during the envelope-opening
-         peek-through transition (its own staggered entrance animation
-         hadn't settled into its final resting position yet at the
-         moment the verse became visible through the flap's triangular
-         opening), reported as a stray line appearing then disappearing.
-         Removed outright per request rather than retimed. -->
-
-    <!-- "يتشرف" (is honored to) directly above the family names — the
-         traditional opening word of a formal Arabic wedding invitation,
-         governing the family names below it the way it did before they
-         were split into two columns (see formalInvitationText). -->
-    <p class="verse-lead-text" data-field="verseLeadText">يتشرف</p>
-
-    <!-- Two mirrored family columns — bride's family first in DOM order so
-         it lands on the RIGHT under RTL's default inline-start/end flow
-         (see .family-columns), matching conventional Arabic invitation
-         layout, with the groom's family on the left. -->
-    <div class="family-columns">
-      <div class="family-column family-column--bride">
-        <p class="family-name" data-field="brideFamilyName">السيد أحمد عبدالله الخطيب</p>
-        <p class="family-consort" data-field="brideFamilyConsort">وحرمه جيهان</p>
-      </div>
-      <div class="family-divider" aria-hidden="true"></div>
-      <div class="family-column family-column--groom">
-        <p class="family-name" data-field="groomFamilyName">الدكتور ماهر سلامة</p>
-        <p class="family-consort" data-field="groomFamilyConsort">وحرمه منال</p>
-      </div>
-    </div>
-
-    <p class="formal-invitation-text" data-field="formalInvitationText">
-      بدعوتكم لحضور حفل زفاف كريمتهم الدكتورة لين وكريمهم المهندس طارق سلامة
-    </p>
-
-    <div class="ornament-divider ornament-divider--olive" aria-hidden="true">
-      <svg viewBox="0 0 160 28"><use href="#motif-divider-olive"></use></svg>
-    </div>
-
-    <!-- Botanical "third layer": a single delicate olive branch with two
-         small white blooms, tucked in one corner of the page — framing
-         the verse without competing with it. Excluded from the section's
-         own child-cascade stagger (see .corner-motif in the CSS) since it
-         is a background accent, not a content beat. -->
-    <div class="corner-motif corner-motif--verse" aria-hidden="true">
-      <svg class="corner-motif-branch" viewBox="0 0 140 140"><use href="#motif-eucalyptus-sprig"></use></svg>
-      <svg class="corner-motif-bloom corner-motif-bloom--verse-1" viewBox="0 0 40 40"><use href="#motif-bloom"></use></svg>
-      <svg class="corner-motif-bloom corner-motif-bloom--verse-2" viewBox="0 0 40 40"><use href="#motif-bloom"></use></svg>
-    </div>
-  </section>
-
-  <!-- ---------- Hero ---------- -->
-  <section class="section hero-section" data-reveal>
-    <div class="hero-frame">
-
-      <!-- T & L monogram: a hand-lettered-style flowing script, standing on
-           its own with no wreath or ring — a signature-style mark rather
-           than a stamped seal. Latin initials are kept as a deliberate
-           logotype detail, isolated with dir="ltr" so they stay in fixed
-           left-to-right order inside the RTL page. The small swash beneath
-           is the only ornament, styled to read as an extension of the
-           lettering itself rather than applied decoration. -->
-      <div class="monogram-emblem">
-        <p class="monogram-script" dir="ltr" aria-hidden="true">
-          <span data-field="monogramGroom">T</span><span class="monogram-amp">&amp;</span><span data-field="monogramBride">L</span>
+    <div class="flex-card-content" style="display: flex; flex-direction: column; align-items: center; text-align: center; width: 100%;">
+      
+      <!-- Monogram (T & L) - Centered. Was "T | L" with a literal pipe
+           character; changed to "&" (in the same script font as T/L,
+           matching how .monogram-amp renders the connector everywhere
+           else on the site) per request. -->
+      <div class="monogram-emblem" style="margin-bottom: 2.5rem; display: flex; justify-content: center; width: 100%;">
+        <p class="monogram-script" dir="ltr" aria-hidden="true" style="font-size: clamp(3.5rem, 12vw, 5rem); display: flex; align-items: center;">
+          <span data-field="monogramGroom">T</span>
+          <span class="monogram-amp" style="font-size: 0.62em; margin: 0 0.05em;">&amp;</span>
+          <span data-field="monogramBride">L</span>
         </p>
-        <svg class="monogram-swash" viewBox="0 0 140 22" aria-hidden="true">
-          <use href="#motif-signature-swash"></use>
-        </svg>
       </div>
 
-      <h1 class="hero-names">
-        <span class="script-name" data-field="groomName">طارق</span>
-        <span class="hero-names-amp" aria-hidden="true" data-field="heroNamesConnector">و</span>
-        <span class="script-name" data-field="brideName">لين</span>
-      </h1>
-
-      <!-- White flower bouquet photo, the hero's supporting visual note
-           beneath the names. The PNG's background is already fully
-           transparent (a clean cutout, not a rectangular photo), so
-           there's no clip-path/mask to apply here the way the venue photo
-           needed one — the bouquet's own organic silhouette already reads
-           as a soft, non-rectangular shape. A soft warm glow sits behind
-           it (see .hero-bouquet::before) plus a drop-shadow on the photo
-           itself to lift it off the page. -->
-      <div class="hero-bouquet">
-        <img class="hero-bouquet-photo" src="assets/images/whiteFlowerBouquet.png" alt="" aria-hidden="true" loading="lazy" />
+      <!-- Prayer -->
+      <div class="verse-block" style="width: 100%;">
+        <p class="verse-text" data-field="prayerText" style="font-family: var(--font-ar-body); font-size: clamp(1.2rem, 4vw, 1.5rem); line-height: 1.8; color: var(--text-primary); margin: 0 auto 1rem auto; max-width: 90%;">
+          اللهم بارك لهما وبارك عليهما<br>واجمع بينهما في خير
+        </p>
       </div>
 
-      <div class="ornament-divider ornament-divider--olive" aria-hidden="true">
-        <svg viewBox="0 0 160 28"><use href="#motif-divider-olive"></use></svg>
+      <!-- ADDED (per request): olive-wreath-arch.png right under the
+           opening prayer, replacing the small SVG line divider that used
+           to sit here (keeping both would have doubled up on the same
+           job). -->
+      <img src="assets/images/decor/olive-wreath-arch.png" alt="" aria-hidden="true" loading="lazy" decoding="async" style="width: 55%; max-width: 260px; margin: 1rem auto; display: block; opacity: 0.9;">
+
+      <div class="invitation-block" style="margin-top: 1rem; width: 100%; display: flex; flex-direction: column; align-items: center;">
+        
+        <!-- Sentiment Text -->
+        <p class="sentiment-text" data-field="sentimentText" style="font-family: var(--font-ar-body); font-size: clamp(1.1rem, 3.5vw, 1.3rem); line-height: 1.8; color: var(--text-primary); margin: 0 auto 1.5rem auto; max-width: 90%;">
+          بمشاعر مليئة بالفرح والسعادة<br>ولأن الفرحة لا تكتمل إلا بوجودكم
+        </p>
+
+        <p class="verse-lead-text" data-field="verseLeadText" style="margin-bottom: 1.5rem;">يتشرف</p>
+
+        <!-- Families (Side-by-Side) -->
+        <div class="family-columns">
+          <div class="family-column family-column--groom">
+            <p class="family-name" data-field="groomFamilyName">الدكتور ماهر سلامة</p>
+            <p class="family-consort" data-field="groomFamilyConsort">و العائلة</p>
+          </div>
+          <div class="family-divider" aria-hidden="true"></div>
+          <div class="family-column family-column--bride">
+            <p class="family-name" data-field="brideFamilyName">الدكتور أحمد الخطيب</p>
+            <p class="family-consort" data-field="brideFamilyConsort">و العائلة</p>
+          </div>
+        </div>
+
+        <!-- Formal Invitation Sentence -->
+        <p class="formal-invitation-text" data-field="formalInvitationText" style="margin-top: 1.5rem; margin-bottom: 2.5rem; max-width: 90%;">
+          بدعوتكم لحضور<br>زفاف ولديهما
+        </p>
+
+        <!-- REMOVED (per request): the floral wreath arch above the names. -->
+
+        <!-- Names -->
+        <h1 class="hero-names">
+          <span class="script-name" data-field="groomNameAR">طارق</span>
+          <span class="hero-names-amp" aria-hidden="true" data-field="heroNamesConnector">و</span>
+          <span class="script-name" data-field="brideNameAR">لين</span>
+        </h1>
+
+        <!-- English Names (Hidden by default, shown when EN is active) -->
+        <h1 class="hero-names" dir="ltr" style="display: none;" id="english-hero-names">
+          <span class="script-name" data-field="groomNameEN" style="font-family: var(--font-display); font-weight: 500;">Tareq</span>
+          <span class="hero-names-amp" aria-hidden="true" data-field="heroNamesConnectorEN" style="font-family: var(--font-script); font-size: 1.2em;">&amp;</span>
+          <span class="script-name" data-field="brideNameEN" style="font-family: var(--font-display); font-weight: 500;">Leen</span>
+        </h1>
+
+        <!-- RESTORED: White flower bouquet photo -->
+        <div class="hero-bouquet" style="margin-top: 0.5rem;">
+          <img class="hero-bouquet-photo" src="assets/images/whiteFlowerBouquet.png" alt="" aria-hidden="true" loading="lazy" />
+        </div>
+
+        <!-- ADDED (per request): gold-divider.png right above the time
+             line, replacing the small SVG line divider that used to sit
+             here. -->
+        <img src="assets/images/decor/gold-divider.png" alt="" aria-hidden="true" loading="lazy" decoding="async" style="width: 50%; max-width: 220px; margin: 2rem auto 1.5rem; display: block;">
+
+        <!-- Time Only -->
+        <p class="time-text" data-field="timeText" style="font-family: var(--font-ar-body); font-size: clamp(1.1rem, 3.5vw, 1.3rem); color: var(--text-secondary); font-weight: 500;">
+          الساعة السابعة مساءً
+        </p>
+
       </div>
     </div>
   </section>
 
-  <!-- ---------- Venue illustration ----------
-       The emotional centerpiece of the page: a wide, painterly stone
-       colonnade with potted olive trees and a classical fountain, in the
-       sage palette. Full-bleed on purpose, breaking out of .section's
-       max-width so it reads as a banner. -->
-  <div class="venue-banner" data-reveal aria-hidden="true">
-    <svg class="venue-illustration" viewBox="0 0 900 260" preserveAspectRatio="xMidYMax meet">
-      <use href="#motif-venue-scene"></use>
-    </svg>
+  <!-- REMOVED (per request): the separate Hero section (T&L monogram +
+       names + bouquet) entirely — Section 1 (verse-section, above) now
+       already contains its own monogram, names, and bouquet, so this
+       whole section had become 100% redundant duplicate content. -->
 
-    <!-- Small branch-and-bloom cluster layered at the banner's lower-right
-         edge, sized/tinted to sit low-key against the painted colonnade
-         rather than reading as a separate sticker on top of it -->
-    <svg class="venue-accent-branch" viewBox="0 0 140 140"><use href="#motif-eucalyptus-sprig"></use></svg>
-    <svg class="venue-accent-bloom" viewBox="0 0 40 40"><use href="#motif-bloom"></use></svg>
+  <!-- ---------- Italian garden transition banner ----------
+       Individual-asset decor pass: colonnade-fountain.png (was
+       frame-06.png) — a painterly stone colonnade with climbing vines
+       and a classical fountain, already a clean transparent-background
+       illustration on its own. Full-bleed, object-fit: contain, height
+       following the image's own aspect ratio (see .venue-banner in the
+       CSS) — no card/text overlay, purely atmospheric. -->
+  <div class="venue-banner" data-reveal aria-hidden="true">
+    <picture>
+      <source srcset="assets/images/decor/colonnade-fountain.webp" type="image/webp">
+      <img class="venue-illustration" src="assets/images/decor/colonnade-fountain.png" alt="" width="866" height="288" loading="lazy" decoding="async">
+    </picture>
   </div>
 
   <!-- ---------- The date: scratch-to-reveal cards ----------
@@ -709,78 +505,95 @@
        there is no JS-driven content swap, only a visual reveal. With
        prefers-reduced-motion the canvas is never created and the date
        shows directly (handled in LeensWeddingInvitation.js). -->
-  <section class="section date-section" data-reveal>
-    <h2 class="section-title" data-field="dateSectionTitle">الموعد</h2>
-    <p class="section-subtitle" data-field="dateSectionSubtitle">امسح لتكتشف التاريخ</p>
+  <section class="section flex-card date-section" data-reveal>
+    <!-- Frame-image removal pass: was a .framed-card locked to
+         frame-07.png with the scratch canvases positioned to land inside
+         its 3 drawn arches. Now .flex-card (the same shared card style
+         as every other section) with the arch shape, gold border, and
+         brushed-metal texture drawn entirely in CSS (.scratch-face) —
+         see that rule for the technique. Scratch mechanic/canvas LOGIC
+         in LeensWeddingInvitation.js is completely untouched: it reads
+         the canvas's real rendered size via getBoundingClientRect(), so
+         it's indifferent to how the box around it is styled; only
+         paintCoating()'s drawing (not its threshold/reveal behavior) was
+         touched, to match this same brushed-metal look. -->
+    <div class="flex-card-content">
+      <h2 class="section-title" data-field="dateSectionTitle">الموعد</h2>
+      <p class="section-subtitle" data-field="dateSectionSubtitle">امسح لتكتشف التاريخ</p>
 
-    <!-- Small "scratch again" reset button (see resetScratchCards() in the
-         JS) — re-coats every scratch card so a guest who's already
-         revealed the date can play again, or so it doesn't stay
-         permanently scratched for the next person looking over their
-         shoulder. -->
-    <button type="button" id="scratch-reset-btn" class="scratch-reset-btn" aria-label="اعادة تغطية البطاقات لتخدشها من جديد / Re-cover the cards to scratch again">
-      <svg class="scratch-reset-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-refresh"></use></svg>
-    </button>
+      <!-- Small "scratch again" reset button (see resetScratchCards() in the
+           JS) — re-coats every scratch card so a guest who's already
+           revealed the date can play again, or so it doesn't stay
+           permanently scratched for the next person looking over their
+           shoulder. -->
+      <button type="button" id="scratch-reset-btn" class="scratch-reset-btn" aria-label="اعادة تغطية البطاقات لتخدشها من جديد / Re-cover the cards to scratch again">
+        <svg class="scratch-reset-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-refresh"></use></svg>
+      </button>
 
-    <div class="scratch-cards">
-      <div class="scratch-card">
-        <div class="scratch-face">
-          <div class="scratch-value" data-field="scratchDay">13</div>
-          <canvas class="scratch-canvas" data-scratch-card aria-hidden="true"></canvas>
+      <div class="scratch-cards">
+        <div class="scratch-card">
+          <div class="scratch-face">
+            <div class="scratch-value" data-field="scratchDay">13</div>
+            <canvas class="scratch-canvas" data-scratch-card aria-hidden="true"></canvas>
+          </div>
+          <p class="scratch-label" data-field="dayLabel">اليوم</p>
         </div>
-        <p class="scratch-label" data-field="dayLabel">اليوم</p>
-      </div>
-      <div class="scratch-card">
-        <div class="scratch-face">
-          <div class="scratch-value scratch-value--word" data-field="scratchMonth">أكتوبر</div>
-          <canvas class="scratch-canvas" data-scratch-card aria-hidden="true"></canvas>
+        <div class="scratch-card">
+          <div class="scratch-face">
+            <div class="scratch-value scratch-value--word" data-field="scratchMonth">أكتوبر</div>
+            <canvas class="scratch-canvas" data-scratch-card aria-hidden="true"></canvas>
+          </div>
+          <p class="scratch-label" data-field="monthLabel">الشهر</p>
         </div>
-        <p class="scratch-label" data-field="monthLabel">الشهر</p>
-      </div>
-      <div class="scratch-card">
-        <div class="scratch-face">
-          <div class="scratch-value" data-field="scratchYear">2026</div>
-          <canvas class="scratch-canvas" data-scratch-card aria-hidden="true"></canvas>
+        <div class="scratch-card">
+          <div class="scratch-face">
+            <div class="scratch-value" data-field="scratchYear">2026</div>
+            <canvas class="scratch-canvas" data-scratch-card aria-hidden="true"></canvas>
+          </div>
+          <p class="scratch-label" data-field="yearLabel">السنة</p>
         </div>
-        <p class="scratch-label" data-field="yearLabel">السنة</p>
       </div>
     </div>
-
-    <!-- Tiny botanical accent beneath the cards — branch only (no bloom),
-         so the recurring language varies its composition from the
-         branch+bloom pairing used elsewhere -->
-    <svg class="date-sprig" viewBox="0 0 140 140" aria-hidden="true"><use href="#motif-eucalyptus-sprig"></use></svg>
   </section>
 
   <!-- ---------- Countdown ---------- -->
-  <section class="section countdown-section" data-reveal>
-    <h2 class="section-title" data-field="countdownTitle">بدء الاحتفال</h2>
+  <section class="section flex-card countdown-section" data-reveal>
+    <!-- Frame-image removal pass: was a .framed-card locked to
+         frame-08.png with the 4 boxes positioned against its drawn
+         tiles. Now .flex-card, boxes drawn in CSS (.countdown-unit) with
+         the SAME brushed-metal gold treatment as the scratch boxes above
+         — one consistent component family, per request. Countdown timer
+         LOGIC in LeensWeddingInvitation.js is untouched — it only ever
+         looks up #cd-days/#cd-hours/#cd-minutes/#cd-seconds by id and
+         sets their textContent, indifferent to how the boxes are styled. -->
+    <div class="flex-card-content">
+      <h2 class="section-title" data-field="countdownTitle">بدء الاحتفال</h2>
 
-    <!-- Small candle-and-branch accent between the title and the numerals
-         — the countdown's own "third layer," kept small and in normal
-         flow (not absolutely positioned) so it never risks overlapping
-         either at any viewport width -->
-    <div class="countdown-motif" aria-hidden="true">
-      <svg class="countdown-motif-branch" viewBox="0 0 140 140"><use href="#motif-eucalyptus-sprig"></use></svg>
-      <svg class="countdown-motif-candle" viewBox="0 0 30 90"><use href="#motif-candle"></use></svg>
-    </div>
+      <!-- Small candle-and-branch accent between the title and the
+           numerals — kept small, in normal flow so it never risks
+           overlapping either -->
+      <div class="countdown-motif" aria-hidden="true">
+        <svg class="countdown-motif-branch" viewBox="0 0 140 140"><use href="#motif-eucalyptus-sprig"></use></svg>
+        <svg class="countdown-motif-candle" viewBox="0 0 30 90"><use href="#motif-candle"></use></svg>
+      </div>
 
-    <div id="countdown" class="countdown" role="timer" aria-live="polite">
-      <div class="countdown-unit">
-        <span class="countdown-number" id="cd-days">00</span>
-        <span class="countdown-label" data-field="daysLabel">أيام</span>
-      </div>
-      <div class="countdown-unit">
-        <span class="countdown-number" id="cd-hours">00</span>
-        <span class="countdown-label" data-field="hoursLabel">ساعات</span>
-      </div>
-      <div class="countdown-unit">
-        <span class="countdown-number" id="cd-minutes">00</span>
-        <span class="countdown-label" data-field="minutesLabel">دقائق</span>
-      </div>
-      <div class="countdown-unit">
-        <span class="countdown-number" id="cd-seconds">00</span>
-        <span class="countdown-label" data-field="secondsLabel">ثوانٍ</span>
+      <div id="countdown" class="countdown" role="timer" aria-live="polite">
+        <div class="countdown-unit">
+          <span class="countdown-number" id="cd-days">00</span>
+          <span class="countdown-label" data-field="daysLabel">أيام</span>
+        </div>
+        <div class="countdown-unit">
+          <span class="countdown-number" id="cd-hours">00</span>
+          <span class="countdown-label" data-field="hoursLabel">ساعات</span>
+        </div>
+        <div class="countdown-unit">
+          <span class="countdown-number" id="cd-minutes">00</span>
+          <span class="countdown-label" data-field="minutesLabel">دقائق</span>
+        </div>
+        <div class="countdown-unit">
+          <span class="countdown-number" id="cd-seconds">00</span>
+          <span class="countdown-label" data-field="secondsLabel">ثوانٍ</span>
+        </div>
       </div>
     </div>
   </section>
@@ -794,112 +607,98 @@
        sitting directly beneath it. The photo itself is also a real link
        to the same destination (see #venue-photo-link's href, built in
        LeensWeddingInvitation.js next to #directions-btn's). -->
-  <section class="section location-section" data-reveal>
-    <h2 class="section-title" data-field="locationTitle">فندق دبليو</h2>
-    <p class="location-subtitle" data-field="locationSubtitle">حيث تبدأ لحظاتنا الأجمل</p>
+  <section class="section flex-card location-section" data-reveal>
+    <!-- Individual-asset decor pass: was a .framed-card locked to
+         frame-03.png's fixed arch, with the venue photo/RSVP absolutely
+         positioned against it. Now .flex-card (auto-height, solid
+         #F6F1E6, real CSS border) — venue name, photo, caption, button,
+         and RSVP all in plain normal flow, so a longer RSVP validation
+         message can never overflow the card the way it would have
+         against a fixed-height background image. candle-branch-corner.png
+         sits at the bottom-left corner; bottom-right is the SAME asset
+         mirrored via CSS (scaleX(-1)), not a duplicated file. The venue
+         photo keeps its existing arch-shaped border-radius clip exactly
+         as built — only the card behind it changed. -->
+    <img class="decor-corner-sprig decor-corner-sprig--bl" src="assets/images/decor/candle-branch-corner.png" alt="" aria-hidden="true" loading="lazy" decoding="async" style="width: clamp(70px, 20%, 120px);">
+    <img class="decor-corner-sprig decor-corner-sprig--br" src="assets/images/decor/candle-branch-corner.png" alt="" aria-hidden="true" loading="lazy" decoding="async" style="width: clamp(70px, 20%, 120px);">
 
-    <div class="venue-photo-wrap">
-      <a id="venue-photo-link" class="venue-photo-frame" href="#" target="_blank" rel="noopener noreferrer" aria-label="عرض موقع فندق دبليو على الخريطة">
-        <img class="venue-photo" src="assets/images/whotel-venue.jpg" alt="فندق دبليو، الواجهة الخارجية" loading="lazy" />
-        <svg class="venue-photo-border" viewBox="0 0 300 200" aria-hidden="true">
-          <use href="#venue-arch-border-path"></use>
-        </svg>
+    <div class="flex-card-content">
+      <!-- REMOVED (per request): the floral wreath arch above the venue
+           name. Also collapsed an accidental duplicate/nested
+           .flex-card-content div that was here (two opening divs, one
+           closing) into the single one above. -->
+      <h2 class="section-title" data-field="locationTitle">فندق دبليو</h2>
+           <p class="location-subtitle" data-field="locationSubtitle">حيث تبدأ لحظاتنا الأجمل</p>
+
+      <div class="venue-photo-wrap">
+        <a id="venue-photo-link" class="venue-photo-frame" href="#" target="_blank" rel="noopener noreferrer" aria-label="عرض موقع فندق دبليو على الخريطة">
+          <img class="venue-photo" src="assets/images/whotel-venue.jpg" alt="فندق دبليو، الواجهة الخارجية" loading="lazy" />
+        </a>
+      </div>
+
+      <p class="venue-photo-hint">
+        <svg class="venue-photo-hint-icon" viewBox="0 0 48 48" aria-hidden="true"><use href="#icon-venue"></use></svg>
+        <span data-field="venuePhotoHint">اضغط لعرض الموقع</span>
+      </p>
+
+      <p class="venue-photo-caption" data-field="venuePhotoCaption">عمّان، الأردن</p>
+
+      <a id="directions-btn" class="directions-btn" href="#" target="_blank" rel="noopener noreferrer" data-field="directionsBtnLabel">
+        احصل على الاتجاهات
       </a>
 
-      <!-- Small flower/branch accent at the frame's top corner, coordinated
-           with the arch border already in place rather than overlapping it -->
-      <div class="location-motif" aria-hidden="true">
-        <svg class="location-motif-branch" viewBox="0 0 140 140"><use href="#motif-eucalyptus-sprig"></use></svg>
-        <svg class="location-motif-bloom" viewBox="0 0 40 40"><use href="#motif-bloom"></use></svg>
+      <!-- ---------- RSVP ----------
+           Yes/No -> (No: brief acknowledgment, nothing saved) / (Yes: name
+           field + Confirm, written to Firestore — see initRSVP() in
+           LeensWeddingInvitation.js and firebase-config.js, loaded near the
+           end of this file). -->
+      <div class="rsvp-block">
+        <p class="rsvp-question" data-field="rsvpQuestion">هل ستتمكنون من الحضور؟</p>
+
+        <!-- Yes/No stay visible and swappable for as long as the guest
+             hasn't hit Confirm yet (see setChoice() in the JS) — either can
+             be re-clicked to change their mind at any point up to that. -->
+        <div class="rsvp-choice" id="rsvp-choice">
+          <button type="button" class="rsvp-btn" id="rsvp-yes" aria-pressed="false" data-field="rsvpYes">نعم</button>
+          <button type="button" class="rsvp-btn" id="rsvp-no" aria-pressed="false" data-field="rsvpNo">لا</button>
+        </div>
+
+        <div class="rsvp-form" id="rsvp-form" hidden>
+          <input type="text" class="rsvp-input" id="rsvp-name" data-field-placeholder="rsvpNamePlaceholder" placeholder="اسمك" autocomplete="name" />
+          <button type="button" class="rsvp-confirm-btn" id="rsvp-confirm" data-field="rsvpConfirm">تأكيد</button>
+        </div>
+
+        <p class="rsvp-message" id="rsvp-message" role="status" hidden></p>
       </div>
-    </div>
-
-    <p class="venue-photo-hint">
-      <svg class="venue-photo-hint-icon" viewBox="0 0 48 48" aria-hidden="true"><use href="#icon-venue"></use></svg>
-      <span data-field="venuePhotoHint">اضغط لعرض الموقع</span>
-    </p>
-
-    <p class="venue-photo-caption" data-field="venuePhotoCaption">عمّان، الأردن</p>
-
-    <a id="directions-btn" class="directions-btn  ef="#" target="_blank" rel="noopener noreferrer" data-field="directionsBtnLabel">
-      احصل على الاتجاهات
-    </a>
-
-    <!-- ---------- RSVP ----------
-         Yes/No -> (No: brief acknowledgment, nothing saved) / (Yes: name
-         field + Confirm, written to Firestore — see initRSVP() in
-         LeensWeddingInvitation.js and firebase-config.js, loaded near the
-         end of this file). -->
-    <div class="rsvp-block">
-      <p class="rsvp-question" data-field="rsvpQuestion">هل ستتمكنون من الحضور؟</p>
-
-      <!-- Yes/No stay visible and swappable for as long as the guest
-           hasn't hit Confirm yet (see setChoice() in the JS) — either can
-           be re-clicked to change their mind at any point up to that. -->
-      <div class="rsvp-choice" id="rsvp-choice">
-        <button type="button" class="rsvp-btn" id="rsvp-yes" aria-pressed="false" data-field="rsvpYes">نعم</button>
-        <button type="button" class="rsvp-btn" id="rsvp-no" aria-pressed="false" data-field="rsvpNo">لا</button>
-      </div>
-
-      <div class="rsvp-form" id="rsvp-form" hidden>
-        <input type="text" class="rsvp-input" id="rsvp-name" data-field-placeholder="rsvpNamePlaceholder" placeholder="اسمك" autocomplete="name" />
-        <button type="button" class="rsvp-confirm-btn" id="rsvp-confirm" data-field="rsvpConfirm">تأكيد</button>
-      </div>
-
-      <p class="rsvp-message" id="rsvp-message" role="status" hidden></p>
     </div>
   </section>
 
- 
 
-  <!-- ---------- Adults-only note ---------- -->
-  <section class="section adults-section" data-reveal>
-    <svg class="motif motif-olive" viewBox="0 0 200 100" aria-hidden="true">
-      <use href="#motif-olive-branch"></use>
-    </svg>
-    <p class="adults-note" data-field="adultsNote">
-      مع فائق حبنا لصغاركم، نرجو التكرم بجعل حضور هذه الأمسية خاصًا بضيوفنا الكبار، شاكرين لكم حسن تفهمكم.
-    </p>
-  </section>
 
   <!-- ---------- Closing / thank you ---------- -->
-  <footer class="section closing-section" data-reveal>
-    <!-- Closing "signature" bookend: a fuller branch + two blooms + a lit
-         candle, echoing the envelope's opening richness — the site's last
-         visual note before the monogram, so it's allowed a little more
-         presence than the small mid-page accents. -->
-    <div class="closing-motif" aria-hidden="true">
-      <svg class="closing-motif-branch" viewBox="0 0 140 140"><use href="#motif-eucalyptus-sprig"></use></svg>
-      <svg class="closing-motif-bloom closing-motif-bloom--1" viewBox="0 0 40 40"><use href="#motif-bloom"></use></svg>
-      <svg class="closing-motif-bloom closing-motif-bloom--2" viewBox="0 0 40 40"><use href="#motif-bloom"></use></svg>
-      <svg class="closing-motif-candle" viewBox="0 0 30 90"><use href="#motif-candle"></use></svg>
-    </div>
-
-    <div class="ornament-divider ornament-divider--olive" aria-hidden="true">
-      <svg viewBox="0 0 160 28"><use href="#motif-divider-olive"></use></svg>
-    </div>
-
-    <p class="closing-message" data-field="closingMessage">
-      جزيل الشكر والامتنان لتشريفكم هذه المناسبة الغالية على قلوبنا، فوجودكم معنا هو أسمى ما نتمناه في هذا اليوم المشهود.
-    </p>
-
-    <div class="ornament-divider ornament-divider--olive" aria-hidden="true">
-      <svg viewBox="0 0 160 28"><use href="#motif-divider-olive"></use></svg>
-    </div>
-
-    <p class="closing-signature" data-field="closingSignature">بكل الحب والامتنان، طارق ولين</p>
-
-    <!-- Same T&L script monogram as the hero (.monogram-emblem, reused
-         verbatim — identical markup/classes so the styling is pixel-
-         identical), repeated here as the final visual note, echoing the
-         opening for a sense of closure. -->
-    <div class="monogram-emblem">
-      <p class="monogram-script" dir="ltr" aria-hidden="true">
-        <span data-field="monogramGroom">T</span><span class="monogram-amp">&amp;</span><span data-field="monogramBride">L</span>
+ <!-- ---------- Closing / thank you ---------- -->
+  <!-- ---------- Closing / thank you ---------- -->
+  <footer class="section flex-card closing-section" data-reveal>
+    <div class="flex-card-content closing-block">
+      <p class="closing-message" data-field="closingMessage">
+        جزيل الشكر والامتنان لتشريفكم هذه المناسبة الغالية على قلوبنا، فوجودكم معنا هو أسمى ما نتمناه في هذا اليوم المشهود.
       </p>
-      <svg class="monogram-swash" viewBox="0 0 140 22" aria-hidden="true">
-        <use href="#motif-signature-swash"></use>
+
+      <!-- Beautiful native SVG olive divider (No external image needed) -->
+      <svg class="ornament-divider" style="color: var(--color-gold-hairline);" viewBox="0 0 160 28" aria-hidden="true">
+        <use href="#motif-divider-olive"></use>
       </svg>
+
+      <p class="closing-signature" data-field="closingSignature">بكل الحب والامتنان، طارق ولين</p>
+
+      <div class="monogram-emblem">
+        <p class="monogram-script" dir="ltr" aria-hidden="true">
+          <span data-field="monogramGroom">T</span><span class="monogram-amp">&amp;</span><span data-field="monogramBride">L</span>
+        </p>
+        <svg class="monogram-swash" viewBox="0 0 140 22" aria-hidden="true">
+          <use href="#motif-signature-swash"></use>
+        </svg>
+      </div>
     </div>
   </footer>
 
@@ -965,6 +764,18 @@
   <!-- Distorts the edge of the element based on the noise -->
   <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.5" xChannelSelector="R" yChannelSelector="G" />
 </filter> 
+    <!-- Envelope re-skin pass: gold-to-cream trim for the flap's fold-edge
+         highlight line (see the path using this a few hundred lines up,
+         `stroke="url(#flap-edge-trim-gradient)"` — was a flat cream
+         rgba()). x1/x2 span the flap's left-to-right width so the
+         gradient reads consistently along both diagonal edges rather
+         than repeating per-edge. -->
+    <linearGradient id="flap-edge-trim-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#b8925a" />
+      <stop offset="50%" stop-color="#f6ecd6" />
+      <stop offset="100%" stop-color="#b8925a" />
+    </linearGradient>
+
     <!-- Soft warm glow behind each candle flame -->
     <radialGradient id="flame-glow" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#eec27f" stop-opacity="0.85" />
@@ -1024,9 +835,72 @@
       <stop offset="0%" stop-color="#fbf8ef" />
       <stop offset="100%" stop-color="#c9bd94" />
     </radialGradient>
-    <filter id="vine-lift-shadow" x="-60%" y="-60%" width="220%" height="220%">
-      <feDropShadow dx="0" dy="0.9" stdDeviation="0.9" flood-color="#141005" flood-opacity="0.4" />
+    <!-- Elevation pass: was a single downward feDropShadow (proves the
+         shape floats ABOVE the fabric). Adding a light highlight offset
+         TOWARD --light-angle (128deg, upper-left — see this same
+         convention used sitewide, e.g. the petal sprites' own highlight)
+         on top of that same contact shadow is what proves it has actual
+         HEIGHT, not just a flat cutout with a shadow under it. Both
+         feDropShadows read from SourceGraphic independently (explicit
+         in=), then feMerge stacks shadow -> highlight -> the real shape
+         on top, in that order. Same filter id as before, so every
+         existing filter="url(#vine-lift-shadow)" reference (blossoms,
+         buds) picks this up with zero markup changes; also newly applied
+         to the leafpair/leafsingle groups below, which had no lift
+         treatment of their own until now. -->
+    <filter id="vine-lift-shadow" x="-80%" y="-80%" width="260%" height="260%">
+      <feDropShadow in="SourceGraphic" dx="-0.5" dy="-0.4" stdDeviation="0.35" flood-color="#fff8e2" flood-opacity="0.5" result="vine-hi" />
+      <feDropShadow in="SourceGraphic" dx="0.5" dy="0.85" stdDeviation="0.9" flood-color="#141005" flood-opacity="0.42" result="vine-lo" />
+      <feMerge>
+        <feMergeNode in="vine-lo" />
+        <feMergeNode in="vine-hi" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
     </filter>
+
+    <!-- Elevation pass: pearl/bead accents scattered along the vine and
+         near blossom centers — small, cheap, and one of the strongest
+         "expensive stationery" signals. Bright specular highlight offset
+         toward the same upper-left light convention, soft rim shadow. -->
+    <radialGradient id="pearl-gradient" cx="32%" cy="24%" r="80%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="45%" stop-color="#f3ecd9" />
+      <stop offset="100%" stop-color="#b9ac81" />
+    </radialGradient>
+    <filter id="pearl-shadow" x="-100%" y="-100%" width="300%" height="300%">
+      <feDropShadow dx="0.3" dy="0.5" stdDeviation="0.35" flood-color="#141005" flood-opacity="0.4" />
+    </filter>
+    <g id="motif-pearl" filter="url(#pearl-shadow)">
+      <circle r="1.1" fill="url(#pearl-gradient)" />
+    </g>
+
+    <!-- Elevation pass: full-surface tonal emboss field (section 1) — a
+         large-scale botanical sprig built from the SAME bare vine-leaf/
+         vine-petal silhouettes the colored vine arch already uses (see
+         .emboss-relief in the CSS for why fill/stroke/filter are all set
+         externally rather than baked in: these two base paths carry no
+         fill of their own, so a class on the referencing <use> cascades
+         cleanly into them — the compound #vine-leafpair/#vine-blossom
+         groups do NOT allow this, since their own inner <use>s already
+         set an explicit fill that would win over anything inherited).
+         Scattered at large scale (2-3 per surface, not a tight tile) at
+         near-zero contrast — visible only where the two-sided emboss
+         filter's highlight/shadow catches, same as real blind embossing
+         on stationery. Sits BELOW the colored vine/seal in DOM order
+         everywhere it's used. -->
+    <symbol id="motif-emboss-sprig" viewBox="0 0 90 70">
+      <path d="M4,66 C 14,58 22,50 28,40 C 35,30 40,20 46,10" fill="none" class="emboss-relief" />
+      <use href="#vine-leaf" x="28" y="40" transform="rotate(-30 28 40) scale(1.6)" class="emboss-relief" />
+      <use href="#vine-leaf" x="20" y="52" transform="rotate(24 20 52) scale(1.3)" class="emboss-relief" />
+      <use href="#vine-leaf" x="38" y="26" transform="rotate(-55 38 26) scale(1.4)" class="emboss-relief" />
+      <g transform="translate(46,10) scale(1.8)">
+        <use href="#vine-petal" transform="rotate(-6)" class="emboss-relief" />
+        <use href="#vine-petal" transform="rotate(62)" class="emboss-relief" />
+        <use href="#vine-petal" transform="rotate(138)" class="emboss-relief" />
+        <use href="#vine-petal" transform="rotate(212)" class="emboss-relief" />
+        <use href="#vine-petal" transform="rotate(288)" class="emboss-relief" />
+      </g>
+    </symbol>
 
     <!-- Small eucalyptus sprig — a shorter, single-run offshoot used as a
          static corner accent and as the divider flourish on the verse page -->
@@ -1214,13 +1088,18 @@
     <path id="vine-leaf" d="M0,0 C -1.6,-3.5 -2.8,-7.5 -0.6,-12.8 C 0.4,-14.6 0.9,-13.4 1.4,-12.4 C 3,-7.6 1.9,-3.3 0,0 Z" />
     <path id="vine-vein" d="M0,-1 C 0.2,-4 -0.1,-7 0.2,-10.4" />
 
-    <g id="vine-leafpair">
+    <!-- Elevation pass: filter="url(#vine-lift-shadow)" added to both
+         groups below (previously unfiltered, unlike blossoms/buds which
+         already had a basic downward shadow) — see that filter's own
+         comment for the highlight+shadow pairing that makes these read
+         as raised rather than flat. -->
+    <g id="vine-leafpair" filter="url(#vine-lift-shadow)">
       <use href="#vine-leaf" transform="rotate(-40) scale(0.95)" fill="url(#vine-leaf-gradient)" />
       <use href="#vine-vein" transform="rotate(-40) scale(0.95)" fill="none" stroke="#8a7a45" stroke-width="0.35" stroke-opacity="0.65" />
       <use href="#vine-leaf" transform="rotate(35) scale(1.08)" fill="url(#vine-leaf-gradient)" />
       <use href="#vine-vein" transform="rotate(35) scale(1.08)" fill="none" stroke="#8a7a45" stroke-width="0.35" stroke-opacity="0.65" />
     </g>
-    <g id="vine-leafsingle">
+    <g id="vine-leafsingle" filter="url(#vine-lift-shadow)">
       <use href="#vine-leaf" fill="url(#vine-leaf-gradient)" />
       <use href="#vine-vein" fill="none" stroke="#8a7a45" stroke-width="0.35" stroke-opacity="0.65" />
     </g>
@@ -1292,21 +1171,55 @@
           <path d="M34,70 C 25,68 17,71 12,78" />
           <path d="M24,103 C 16,101 9,105 6,112" />
         </g>
+        <!-- Elevation pass: a second, thinner, lighter copy of the exact
+             same 5 paths — a raised satin-stitch cord reads as a light
+             center line with darker edges either side, not one flat
+             stroke. The wider gradient stroke above now serves as those
+             darker edges, visible either side of this new highlight. -->
+        <g fill="none" stroke="#f8efd2" stroke-opacity="0.55" stroke-width="0.4">
+          <path d="M110,3 C 100,7 91,9 82,15 C 71,21 63,29 56,40 C 47,50 40,58 34,70 C 27,80 21,90 24,103 C 26,111 29,119 23,131" />
+          <path d="M82,15 C 75,10 66,8 59,11" />
+          <path d="M56,40 C 47,37 38,38 30,44" />
+          <path d="M34,70 C 25,68 17,71 12,78" />
+          <path d="M24,103 C 16,101 9,105 6,112" />
+        </g>
 
         <use href="#vine-leafpair" x="94" y="8" transform="rotate(-60 94 8)" />
         <use href="#vine-leafpair" x="70" y="24" transform="rotate(-45 70 24)" />
-        <use href="#vine-leafpair" x="46" y="53" transform="rotate(-28 46 53)" />
+        <!-- Asymmetry pass: rotation nudged from the tidy -28 to -19 —
+             one leaf reads as caught slightly off its expected angle
+             rather than every leaf mirroring its counterpart exactly. -->
+        <use href="#vine-leafpair" x="46" y="53" transform="rotate(-19 46 53)" />
         <use href="#vine-leafpair" x="29" y="87" transform="rotate(-12 29 87)" />
         <use href="#vine-leafsingle" x="18" y="112" transform="rotate(-70 18 112) scale(0.85)" />
+
+        <!-- Elevation pass: pearl accents along the stem's own bend
+             points (reuses the exact same anchor coordinates the stem
+             path already bends through, offset a touch off-line so they
+             read as resting beside the cord rather than embedded in it). -->
+        <use href="#motif-pearl" x="83" y="12.5" />
+        <use href="#motif-pearl" x="57" y="37" />
+        <use href="#motif-pearl" x="25" y="99.5" />
 
         <use href="#vine-bud" x="59" y="11" />
         <!-- Blossom scales bumped ~20% throughout (per request, "make
              them bigger") — the viewBox margin above accounts for the
-             extra size so they still don't clip. -->
-        <use href="#vine-blossom" x="30" y="44" transform="scale(1.32)" />
+             extra size so they still don't clip.
+             Asymmetry pass: nudged onto the stem path itself (was x=30,
+             clear of the line) — one blossom overlapping the vine rather
+             than sitting neatly beside it, like it grew right at a bend
+             instead of just next to one. -->
+        <use href="#vine-blossom" x="34" y="41" transform="scale(1.32)" />
         <use href="#vine-bud" x="12" y="78" transform="scale(0.9)" />
         <use href="#vine-blossom" x="6" y="112" transform="scale(1.14)" />
         <use href="#vine-blossom" x="23" y="131" transform="scale(0.96)" />
+        <!-- Asymmetry pass: one fallen petal, resting alone on the fabric
+             rather than attached to any blossom — a single loose #vine-
+             petal instance (needs its own fill, unlike the vine-blossom
+             group which sets fill once for its whole cluster) with a
+             touch of transparency, as if it drifted a short way from the
+             nearest bloom. -->
+        <use href="#vine-petal" x="50" y="92" transform="rotate(35 50 92) scale(0.85)" fill="url(#vine-petal-white)" opacity="0.85" />
       </g>
 
       <g stroke-linecap="round" transform="scale(-1,1) translate(-220,0)">
@@ -1317,12 +1230,28 @@
           <path d="M34,70 C 25,68 17,71 12,78" />
           <path d="M24,103 C 16,101 9,105 6,112" />
         </g>
+        <g fill="none" stroke="#f8efd2" stroke-opacity="0.55" stroke-width="0.4">
+          <path d="M110,3 C 100,7 91,9 82,15 C 71,21 63,29 56,40 C 47,50 40,58 34,70 C 27,80 21,90 24,103 C 26,111 29,119 23,131" />
+          <path d="M82,15 C 75,10 66,8 59,11" />
+          <path d="M56,40 C 47,37 38,38 30,44" />
+          <path d="M34,70 C 25,68 17,71 12,78" />
+          <path d="M24,103 C 16,101 9,105 6,112" />
+        </g>
 
-        <use href="#vine-leafpair" x="94" y="8" transform="rotate(-60 94 8)" />
+        <!-- Asymmetry pass: -60 -> -52, a few degrees off the left side's
+             exact mirror rather than a stamped duplicate. -->
+        <use href="#vine-leafpair" x="94" y="8" transform="rotate(-52 94 8)" />
         <use href="#vine-leafpair" x="70" y="24" transform="rotate(-45 70 24) scale(1.1)" />
-        <use href="#vine-leafpair" x="46" y="53" transform="rotate(-28 46 53)" />
+        <!-- Asymmetry pass: one leafpair fewer than the left side (which
+             has one at 46,53 too) — density genuinely differs side to
+             side, not just angle/scale. -->
         <use href="#vine-leafpair" x="29" y="87" transform="rotate(-12 29 87) scale(0.92)" />
-        <use href="#vine-leafsingle" x="18" y="112" transform="rotate(-70 18 112) scale(0.85)" />
+        <!-- Asymmetry pass: -70 -> -58, this side's own odd angle. -->
+        <use href="#vine-leafsingle" x="18" y="112" transform="rotate(-58 18 112) scale(0.85)" />
+
+        <use href="#motif-pearl" x="83" y="12.5" />
+        <use href="#motif-pearl" x="57" y="37" />
+        <use href="#motif-pearl" x="25" y="99.5" />
 
         <use href="#vine-bud" x="59" y="11" transform="scale(0.92)" />
         <use href="#vine-blossom" x="30" y="44" transform="scale(1.2)" />
@@ -1331,6 +1260,8 @@
         <use href="#vine-blossom" x="23" y="131" transform="scale(1.02)" />
       </g>
 
+      <use href="#motif-pearl" x="104" y="0" transform="scale(1.1)" />
+      <use href="#motif-pearl" x="117" y="7.5" transform="scale(1.1)" />
       <use href="#vine-blossom" x="110" y="4" transform="scale(1.5)" />
     </symbol>
 
