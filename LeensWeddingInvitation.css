@@ -63,8 +63,8 @@
   /* Deeper bronze shadow for the wax-seal medallion specifically */
   --color-bronze-deep: #8c6a3e;
 
-  --color-ink-ar: #5a3a28;
-  --color-ink-ar-soft: #7a5a42;
+  --color-ink-ar: #482c1c;
+  --color-ink-ar-soft: #664732;
 
   /* --- Rich olive green — the closed envelope's single solid tone, and
      also the dark theme's page background, so the two share one
@@ -317,6 +317,12 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: var(--font-ar-body);
+  /* Bold by default — Amiri only loads 400/700 (see the <link> in the
+     <head>), and most paragraph text here doesn't set its own weight, so
+     it was inheriting a thin 400. Elements that need a different weight
+     (script names, the monogram, etc.) already pin their own explicitly
+     and are unaffected by this. */
+  font-weight: 700;
   color: var(--text-primary);
   background: var(--bg-page);
   overflow-x: hidden;
