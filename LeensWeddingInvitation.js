@@ -1010,6 +1010,7 @@ function initRSVP() {
 
   let submitting = false;
   let confirmed = false; // true only after the server confirms the RSVP was saved — locks the form for good, see below
+  let pendingChoice = null; // "yes" | "no" — which button is active, decides the status written on Confirm
   // Tracks whichever TRANSLATIONS key is currently shown in #rsvp-message
   // (if any), purely so the langchange listener below can re-render it in
   // the new language — otherwise a guest who sees "We'll miss you..." and
@@ -1032,23 +1033,20 @@ function initRSVP() {
   // a real two-way toggle between "show the name field" and "show the
   // declined note", not a one-way pick-and-vanish choice, so a guest can
   // freely change their mind right up until they actually hit Confirm.
+  // Both choices now route through the same name field — a decline needs
+  // a name too, so admin.html can list who isn't coming, not just who is.
   function setChoice(choice) {
     if (confirmed) return;
+    pendingChoice = choice;
     yesBtn.classList.toggle("is-active", choice === "yes");
     noBtn.classList.toggle("is-active", choice === "no");
     yesBtn.setAttribute("aria-pressed", String(choice === "yes"));
     noBtn.setAttribute("aria-pressed", String(choice === "no"));
 
-    if (choice === "yes") {
-      form.hidden = false;
-      message.hidden = true;
-      activeMessageKey = null;
-      nameInput.focus();
-    } else {
-      form.hidden = true;
-      // "No" is acknowledged only — by request, nothing is saved for this path
-      setMessage("rsvpDeclined");
-    }
+    form.hidden = false;
+    message.hidden = true;
+    activeMessageKey = null;
+    nameInput.focus();
   }
 
   yesBtn.addEventListener("click", () => setChoice("yes"));
@@ -1067,18 +1065,18 @@ function initRSVP() {
     nameInput.classList.remove("rsvp-input--error");
 
     const submit = typeof window.submitRSVP === "function"
-      ? window.submitRSVP(name)
+      ? window.submitRSVP(name, pendingChoice)
       : Promise.reject(new Error("submitRSVP is not available — firebase-config.js not set up yet"));
 
     withTimeout(submit, RSVP_TIMEOUT_MS)
       .then(() => {
         // Only NOW — an actual saved confirmation — does the flow lock.
-        // Everything up to this point (picking Yes or No, seeing the
-        // declined note, typing a name) stays freely reversible.
+        // Everything up to this point (picking Yes or No, typing a name)
+        // stays freely reversible.
         confirmed = true;
         choiceWrap.hidden = true;
         form.hidden = true;
-        setMessage("rsvpConfirmed");
+        setMessage(pendingChoice === "no" ? "rsvpDeclined" : "rsvpConfirmed");
       })
       .catch((err) => {
         console.error("RSVP submission failed:", err);

@@ -80,17 +80,25 @@ const db = getFirestore(app);
 // window is the bridge between this module script and the plain
 // (non-module) scripts on each page — LeensWeddingInvitation.js calls
 // window.submitRSVP(), admin.html calls window.fetchRSVPs().
-window.submitRSVP = function (name) {
+window.submitRSVP = function (name, status) {
   return addDoc(collection(db, "rsvps"), {
     name,
+    status: status === "no" ? "no" : "yes",
     timestamp: new Date().toISOString()
   });
 };
 
+// Returns {name, status} objects rather than bare names, so admin.html can
+// split the list into who's coming and who isn't. Docs written before this
+// field existed have no status — treat those as "yes" (the only choice
+// that used to be saved at all).
 window.fetchRSVPs = function () {
   return getDocs(collection(db, "rsvps")).then((snapshot) => {
-    const names = [];
-    snapshot.forEach((doc) => names.push(doc.data().name));
-    return names;
+    const guests = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      guests.push({ name: data.name, status: data.status === "no" ? "no" : "yes" });
+    });
+    return guests;
   });
 };

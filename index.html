@@ -648,8 +648,9 @@
       </a>
 
       <!-- ---------- RSVP ----------
-           Yes/No -> (No: brief acknowledgment, nothing saved) / (Yes: name
-           field + Confirm, written to Firestore — see initRSVP() in
+           Yes/No -> both reuse the same name field + Confirm, written to
+           Firestore with a status of "yes" or "no" so admin.html can show
+           who's coming and who isn't — see initRSVP() in
            LeensWeddingInvitation.js and firebase-config.js, loaded near the
            end of this file). -->
       <div class="rsvp-block">
