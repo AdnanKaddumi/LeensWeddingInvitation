@@ -80,27 +80,18 @@
 
   /* Guest list */
   #guest-section { display: none; }
-  .stat-row { display: flex; gap: 0.9rem; margin-bottom: 1.5rem; }
   .stat-card {
-    flex: 1;
     background: var(--color-ivory);
     border: 1px solid var(--color-gold);
     border-radius: 14px;
-    padding: 1.2rem 0.6rem;
+    padding: 1.4rem;
     text-align: center;
+    margin-bottom: 1.5rem;
     box-shadow: 0 10px 22px -14px rgba(87, 76, 51, 0.4);
   }
-  .stat-card--declined { border-color: var(--color-beige-deep); }
   .stat-count { font-family: 'Aref Ruqaa', serif; font-size: 2.6rem; color: var(--color-sage-dark); line-height: 1; }
-  .stat-card--declined .stat-count { color: var(--color-ink-soft); }
-  .stat-label { color: var(--color-ink-soft); font-size: 0.85rem; margin-top: 0.4rem; }
+  .stat-label { color: var(--color-ink-soft); font-size: 0.9rem; margin-top: 0.4rem; }
 
-  .list-heading {
-    font-family: 'Aref Ruqaa', serif;
-    font-size: 1.2rem;
-    color: var(--color-sage-dark);
-    margin: 1.4rem 0 0.6rem;
-  }
   ul.guest-list { list-style: none; margin: 0; padding: 0; }
   ul.guest-list li {
     background: var(--color-ivory);
@@ -110,7 +101,6 @@
     margin-bottom: 0.5rem;
     font-weight: 700;
   }
-  ul.guest-list--declined li { font-weight: 400; color: var(--color-ink-soft); }
   .empty-state { text-align: center; color: var(--color-ink-soft); padding: 1rem; font-size: 0.9rem; }
 </style>
 </head>
@@ -127,24 +117,12 @@
     </div>
 
     <div id="guest-section">
-      <div class="stat-row">
-        <div class="stat-card">
-          <div class="stat-count" id="count-yes">—</div>
-          <div class="stat-label">مؤكدون للحضور</div>
-        </div>
-        <div class="stat-card stat-card--declined">
-          <div class="stat-count" id="count-no">—</div>
-          <div class="stat-label">اعتذروا عن الحضور</div>
-        </div>
+      <div class="stat-card">
+        <div class="stat-count" id="count">—</div>
+        <div class="stat-label">عدد المؤكدين للحضور</div>
       </div>
-
-      <h2 class="list-heading">الحضور</h2>
-      <ul id="guest-list-yes" class="guest-list"></ul>
-      <p id="empty-yes" class="empty-state" hidden>لا يوجد تأكيدات حضور بعد.</p>
-
-      <h2 class="list-heading">الاعتذارات</h2>
-      <ul id="guest-list-no" class="guest-list guest-list--declined"></ul>
-      <p id="empty-no" class="empty-state" hidden>لا يوجد اعتذارات بعد.</p>
+      <ul id="guest-list" class="guest-list"></ul>
+      <p id="empty-state" class="empty-state" hidden>لا يوجد تأكيدات حضور بعد.</p>
     </div>
   </div>
 
@@ -156,23 +134,10 @@
     const guestSection = document.getElementById("guest-section");
     const loginError = document.getElementById("login-error");
 
-    function fillList(listId, emptyId, names) {
-      const list = document.getElementById(listId);
-      const empty = document.getElementById(emptyId);
-      list.innerHTML = "";
-      if (!names.length) {
-        empty.hidden = false;
-      } else {
-        empty.hidden = true;
-        names.forEach((name) => {
-          const li = document.createElement("li");
-          li.textContent = name;
-          list.appendChild(li);
-        });
-      }
-    }
-
     function loadGuests() {
+      const list = document.getElementById("guest-list");
+      const empty = document.getElementById("empty-state");
+
       if (typeof window.fetchRSVPs !== "function") {
         // firebase-config.js hasn't finished loading yet — try again shortly
         // rather than showing an empty list.
@@ -180,13 +145,24 @@
         return;
       }
 
+      // Only ever shows who confirmed — declines aren't shown here (there's
+      // no email/identity check on submission, so a "not coming" list can't
+      // be trusted as complete or attributed to a real guest). The status
+      // is still saved to Firestore either way; see firebase-config.js.
       window.fetchRSVPs().then((guests) => {
         const attending = guests.filter((g) => g.status !== "no").map((g) => g.name);
-        const declined = guests.filter((g) => g.status === "no").map((g) => g.name);
-        document.getElementById("count-yes").textContent = attending.length;
-        document.getElementById("count-no").textContent = declined.length;
-        fillList("guest-list-yes", "empty-yes", attending);
-        fillList("guest-list-no", "empty-no", declined);
+        document.getElementById("count").textContent = attending.length;
+        list.innerHTML = "";
+        if (!attending.length) {
+          empty.hidden = false;
+        } else {
+          empty.hidden = true;
+          attending.forEach((name) => {
+            const li = document.createElement("li");
+            li.textContent = name;
+            list.appendChild(li);
+          });
+        }
       });
     }
 
